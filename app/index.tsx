@@ -3,6 +3,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Dimensions, Image, Linking, SafeAreaView, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import ProductSelection from '../components/ProductSelection';
 import { useThemeColor } from '../hooks/use-theme-color';
 import { useAuth } from '../hooks/useAuth';
 
@@ -28,11 +29,11 @@ const HomeScreen = () => {
    const [isMenuOpen, setIsMenuOpen] = useState(false);
    const colorScheme = useColorScheme();
 
-   const safeAreaBgColor = useThemeColor({ light: '#002558', dark: '#151718' }, 'background');
-   const containerBgColor = useThemeColor({ light: '#002558', dark: '#151718' }, 'background');
+   // Ahora todos los colores de fondo del contenedor principal son iguales
+   const mainBgColor = useThemeColor({ light: '#002558', dark: '#151718' }, 'background');
+
+   // Se eliminaron las variables de color separadas para unificar el fondo
    const headerTitleColor = useThemeColor({ light: '#fff', dark: '#eee' }, 'text');
-   const contentBgColor = useThemeColor({ light: '#f0f0f0', dark: '#1e1e1e' }, 'background');
-   const welcomeTextColor = useThemeColor({ light: '#333', dark: '#eee' }, 'text');
    const menuBgColor = useThemeColor({ light: 'white', dark: '#282828' }, 'background');
    const menuHeaderText = useThemeColor({ light: '#002558', dark: '#eee' }, 'text');
    const closeIconColor = useThemeColor({ light: '#002558', dark: '#ccc' }, 'text');
@@ -56,19 +57,18 @@ const HomeScreen = () => {
    };
 
    return (
-     <SafeAreaView style={[styles.safeArea, { backgroundColor: safeAreaBgColor }]}>
-       <View style={[styles.container, { backgroundColor: containerBgColor }]}>
-         <View style={[styles.header, { backgroundColor: containerBgColor }]}>
+     <SafeAreaView style={[styles.safeArea, { backgroundColor: mainBgColor }]}>
+       <View style={[styles.container, { backgroundColor: mainBgColor }]}>
+         <View style={[styles.header, { backgroundColor: mainBgColor }]}>
            <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
              <Ionicons name="menu" size={32} color={headerTitleColor} />
            </TouchableOpacity>
            <Text style={[styles.headerTitle, { color: headerTitleColor }]}>Selecciona tu producto</Text>
          </View>
 
-         <View style={[styles.content, { backgroundColor: contentBgColor }]}>
-           <Text style={[styles.welcomeText, { color: welcomeTextColor }]}>¡Bienvenido, {user?.name}!</Text>
-         </View>
-
+         {/* El componente de selección se integra directamente sin contenedor extra */}
+         <ProductSelection />
+         
          {isMenuOpen && (
            <TouchableOpacity
              style={styles.overlay}
@@ -148,12 +148,8 @@ const styles = StyleSheet.create({
      fontSize: 22,
      fontWeight: 'bold',
    },
-   content: {
-     flex: 1,
-     borderTopLeftRadius: 40,
-     borderTopRightRadius: 40,
-     padding: 20,
-   },
+   // Se eliminó la separación de la sección de contenido
+   // y los bordes redondeados para que el fondo sea uniforme.
    welcomeText: {
      fontSize: 20,
      fontWeight: '600',
