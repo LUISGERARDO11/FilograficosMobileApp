@@ -1,7 +1,5 @@
-// components/ProductSelection.tsx
-
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router'; // Usa useRouter en lugar de useNavigation
+import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
@@ -10,20 +8,14 @@ import {
     Dimensions,
     FlatList,
     LayoutAnimation,
-    Platform,
     StyleSheet,
     Text,
     TouchableOpacity,
-    UIManager,
-    View,
+    View
 } from 'react-native';
 import { useThemeColor } from '../hooks/use-theme-color';
 import { get3dModels, ProductModel } from '../services/models3dService';
 import ProductItem from './ProductItem';
-
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-    UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 const { width } = Dimensions.get('window');
 
@@ -33,7 +25,7 @@ const ProductSelection = () => {
     const [models, setModels] = useState<ProductModel[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-    const router = useRouter(); // Usa router en lugar de navigation
+    const router = useRouter();
     const animatedValues = useRef<Animated.Value[]>([]).current;
 
     const mainTextColor = useThemeColor({ light: '#fff', dark: '#eee' }, 'text');
@@ -67,23 +59,16 @@ const ProductSelection = () => {
         fetchModels();
     }, []);
 
-   const handleProductPress = (model: ProductModel) => {
-        // Usa encodeURI para asegurar que la URL completa sea segura para la transferencia.
-        // Esto codificará el '%20' existente, pero es mejor que tener un error de caracter ilegal.
-        // Alternativamente, puedes usar decodeURIComponent(model.model_url)
-        // y luego encodeURIComponent(decodedUrl) para asegurar una codificación limpia,
-        // pero la solución más directa es:
-
-        const safeModelUrl = encodeURI(model.model_url);
-        
-        // Usa router.push() para navegar a la nueva ruta
+    const handleProductPress = (model: ProductModel) => {
+        // --- INICIO DE MODIFICACIÓN ---
+        // Ahora solo pasamos el ID del producto
         router.push({
             pathname: '/(personalization)/personalization',
             params: {
-                modelUrl: safeModelUrl, // <-- USAR URL CODIFICADA
-                previewImageUrl: model.preview_image_url,
+                modelId: model.id.toString(), // <-- PASAMOS EL ID COMO STRING
             },
         });
+        // --- FIN DE MODIFICACIÓN ---
     };
 
     const toggleViewMode = () => {
@@ -99,7 +84,8 @@ const ProductSelection = () => {
             </View>
         );
     }
-
+    // ... (rest of the component remains the same)
+    
     const renderItem = ({ item, index }: { item: ProductModel, index: number }) => {
         const accentColor = ACCENT_COLORS[index % ACCENT_COLORS.length];
 
