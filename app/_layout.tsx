@@ -2,6 +2,11 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { AuthProvider, useAuth } from '../hooks/useAuth';
 
+// ***** PASO CLAVE: AGREGAR ESTAS IMPORTACIONES *****
+import '@react-three/fiber/native'; // Importa el cargador de React Native para R3F
+import 'expo-file-system'; // Asegura la configuración para la lectura de archivos locales
+// *************************************************
+
 const InitialLayout = () => {
   const { user } = useAuth();
   const segments = useSegments();

@@ -2,7 +2,8 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { Dimensions, Image, Linking, SafeAreaView, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { Dimensions, Image, Linking, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import ProductSelection from '../components/ProductSelection';
 import { useThemeColor } from '../hooks/use-theme-color';
 import { useAuth } from '../hooks/useAuth';
