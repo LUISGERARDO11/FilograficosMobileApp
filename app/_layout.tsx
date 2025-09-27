@@ -1,37 +1,73 @@
+// app/_layout.tsx
+
 import { Stack, useRouter, useSegments } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import * as SplashScreen from 'expo-splash-screen';
+import React, { useEffect, useState } from 'react'; // 👈 Importamos useState
+import AppLoader from '../components/AppLoader';
 import { AuthProvider, useAuth } from '../hooks/useAuth';
 
 // ***** PASO CLAVE: AGREGAR ESTAS IMPORTACIONES *****
-import '@react-three/fiber/native'; // Importa el cargador de React Native para R3F
-import 'expo-file-system'; // Asegura la configuración para la lectura de archivos locales
+import '@react-three/fiber/native';
+import 'expo-file-system';
 // *************************************************
 
+SplashScreen.preventAutoHideAsync();
+
 const InitialLayout = () => {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
-  const [isReady, setIsReady] = useState(false);
 
-  // Usamos un estado para saber cuándo el Stack está montado
-  useEffect(() => {
-    setIsReady(true);
-  }, []);
+  // 1. Nuevo estado para controlar la transición después de la espera mínima.
+  const [isDelayedReady, setIsDelayedReady] = useState(false); 
 
   useEffect(() => {
-    if (!isReady) return;
+    // Si aún está cargando la autenticación, o si la bandera de "listo con retraso" ya está en true, salimos.
+    if (isDelayedReady) return;
 
-    const inAuthGroup = segments[0] === '(auth)';
-
-    if (user && inAuthGroup) {
-      // Si hay un usuario y está en el grupo de autenticación, redirige a la página principal.
-      router.replace('/');
-    } else if (!user && !inAuthGroup) {
-      // Si no hay un usuario y no está en el grupo de autenticación, redirige al login.
-      router.replace('/(auth)/login');
+    if (isLoading) {
+      return; // Esperar a que la verificación de Auth (isLoading) termine
     }
-  }, [user, segments, isReady]);
 
+    // 2. Ejecutar la lógica de espera mínima de 5 segundos.
+    const minimumTimePromise = new Promise(resolve => 
+      setTimeout(resolve, 5000) // 👈 Retraso de 5 segundos (5000 ms)
+    );
+
+    // 3. Esperar que el tiempo mínimo termine
+    minimumTimePromise.then(() => {
+        setIsDelayedReady(true); // Marcar como listo DESPUÉS del retraso
+    });
+
+  }, [isLoading, isDelayedReady]); // Depende de isLoading y su propio estado de retraso
+
+  // 4. Efecto de Redirección (Se ejecuta DESPUÉS de que isDelayedReady cambia a true)
+  useEffect(() => {
+      // Solo procede a redirigir una vez que la pantalla de carga ha sido vista por el tiempo deseado.
+      if (!isDelayedReady) {
+          return;
+      }
+
+      // Una vez que el tiempo mínimo y la carga han terminado, ocultamos el Splash nativo.
+      SplashScreen.hideAsync();
+
+      const inAuthGroup = segments[0] === '(auth)';
+
+      if (user && inAuthGroup) {
+          router.replace('/');
+      } else if (!user && !inAuthGroup) {
+          router.replace('/(auth)/login');
+      }
+      
+  }, [user, isDelayedReady, segments]);
+
+
+  // 5. Muestra la pantalla de carga si aún no está listo el retraso O la autenticación.
+  if (isLoading || !isDelayedReady) {
+    return <AppLoader />;
+  }
+
+  // 6. Renderiza la navegación solo cuando isDelayedReady es true.
   return <Stack screenOptions={{ headerShown: false }} />;
 };
 
