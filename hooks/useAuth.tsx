@@ -107,6 +107,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       });
 
+      // *** CLAVE: SOLO ELIMINAMOS EL TOKEN. NO ELIMINAMOS "HAS_VIEWED_ONBOARDING" ***
+      // Si en otra parte del código usas AsyncStorage.clear(), esto borraría el flag de onboarding.
       await AsyncStorage.removeItem('userToken');
       setUser(null);
       delete api.defaults.headers.common['Authorization'];

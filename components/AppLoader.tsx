@@ -1,12 +1,12 @@
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    Animated,
-    Dimensions,
-    Easing,
-    StyleSheet,
-    Text,
-    View,
+  Animated,
+  Dimensions,
+  Easing,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 const COMPANY_NAME = "Filográficos";
 const TAGLINE = "Personaliza • Visualiza • Comparte";
@@ -211,15 +211,6 @@ const AppLoader = () => {
         {/* Tagline y formas */}
         {nameTypingComplete && (
           <Animated.View style={[styles.contentContainer, { opacity: fadeAnim }]}>
-            {/* Tagline */}
-            <View style={styles.taglineRow}>
-              <View style={[styles.taglineDivider, { backgroundColor: "red" }]} />
-              <Text style={[styles.taglineText, { fontSize: taglineFontSize }]}>
-                {TAGLINE}
-              </Text>
-              <View style={[styles.taglineDivider, { backgroundColor: "green" }]} />
-            </View>
-
             {/* Shapes + Glow */}
             <View style={styles.morphingShapesContainer}>
             <View style={styles.morphingShapeWrapper}>
