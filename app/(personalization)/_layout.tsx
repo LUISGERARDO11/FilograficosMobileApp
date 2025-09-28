@@ -3,6 +3,8 @@ import React from 'react';
 
 export default function PersonalizationLayout() {
   return (
-    <Stack screenOptions={{ headerShown: false }} />
+    // ✨ CAMBIO CLAVE: Eliminar headerShown: false. 
+    // Ahora, la cabecera se mostrará si no se especifica lo contrario.
+    <Stack /> 
   );
 }

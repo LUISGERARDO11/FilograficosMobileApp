@@ -1,11 +1,9 @@
-// app/(personalization)/personalization.tsx
-
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
-    Alert, // 👈 Importamos Alert de React Native
+    Alert,
     Dimensions,
     ScrollView,
     StyleSheet,
@@ -13,7 +11,9 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+// ⚠️ Vuelve a importar SafeAreaView para usarlo SOLO en los estados de Carga/Error.
 import { SafeAreaView } from 'react-native-safe-area-context';
+
 import ImageSection from '../../components/ImageSection';
 import ModelViewer from '../../components/ModelViewer';
 import TextSection, { TextData } from '../../components/TextSection';
@@ -47,7 +47,6 @@ const PersonalizationScreen = () => {
     const cardBgColor = useThemeColor({ light: '#ffffff', dark: '#282828' }, 'background');
     const cardBorderColor = useThemeColor({ light: '#ddd', dark: '#444' }, 'tabIconDefault');
     const tabActiveBgColor = useThemeColor({ light: '#0056b3', dark: '#007bff' }, 'tint');
-    // ... otras constantes de color
     const tabActiveTextColor = useThemeColor({ light: '#fff', dark: '#fff' }, 'text');
     const tabInactiveTextColor = useThemeColor({ light: '#333', dark: '#ccc' }, 'text');
     const buttonBgColor = useThemeColor({ light: '#0056b3', dark: '#007bff' }, 'tint');
@@ -91,10 +90,10 @@ const PersonalizationScreen = () => {
         setTextData(newTextData);
     };
 
-    // ✨ NUEVA FUNCIÓN: Lógica de confirmación para el cambio de tab
+    // Lógica de confirmación para el cambio de tab
     const handleTabChange = (newTab: PersonalizationMode) => {
         if (activeTab === newTab) {
-            return; // No hacer nada si es el mismo tab
+            return;
         }
 
         let hasData = false;
@@ -125,8 +124,8 @@ const PersonalizationScreen = () => {
                     {
                         text: "Sí, descartar",
                         onPress: () => {
-                            clearData(); // Borra los datos del modo anterior
-                            setActiveTab(newTab); // Cambia al nuevo tab
+                            clearData();
+                            setActiveTab(newTab);
                         },
                         style: 'destructive'
                     }
@@ -147,11 +146,11 @@ const PersonalizationScreen = () => {
     };
 
     if (isLoading) {
-        // ... (Tu lógica de carga)
+        // ✅ CORRECCIÓN: Usamos SafeAreaView aquí para manejar el notch en el estado de carga
         return (
-            <SafeAreaView style={[styles.safeArea, { backgroundColor: headerBgColor }]}>
-                <View style={[styles.loadingContainer, { backgroundColor }]}>
-                    <ActivityIndicator size="large" color={headerTextColor} />
+            <SafeAreaView style={[styles.safeArea, { backgroundColor: backgroundColor }]}>
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={headerBgColor} />
                     <Text style={{ color: primaryTextColor, marginTop: 10 }}>Cargando detalles del producto...</Text>
                 </View>
             </SafeAreaView>
@@ -159,18 +158,19 @@ const PersonalizationScreen = () => {
     }
     
     if (!modelData) {
-        // ... (Tu lógica de producto no encontrado)
+        // ✅ CORRECCIÓN: Usamos SafeAreaView aquí para manejar el notch en el estado de error
         return (
-            <SafeAreaView style={[styles.safeArea, { backgroundColor: headerBgColor }]}>
-                <View style={[styles.loadingContainer, { backgroundColor }]}>
+            <SafeAreaView style={[styles.safeArea, { backgroundColor: backgroundColor }]}>
+                <View style={styles.loadingContainer}>
                     <Text style={{ color: titleTextColor, fontSize: 18 }}>Producto no encontrado.</Text>
                 </View>
             </SafeAreaView>
         );
     }
 
+    // ⭐ CONTENIDO PRINCIPAL: Mantenemos View porque el Stack Header ya está visible
     return (
-        <SafeAreaView style={[styles.safeArea, { backgroundColor: headerBgColor }]}>
+        <View style={[styles.rootContainer, { backgroundColor: headerBgColor }]}>
             <Stack.Screen
                 options={{
                     headerShown: true,
@@ -190,6 +190,7 @@ const PersonalizationScreen = () => {
                     ),
                 }}
             />
+            {/* El ScrollView ahora ocupa el espacio restante debajo del header de Stack */}
             <ScrollView
                 style={[styles.scrollView, { backgroundColor: backgroundColor }]}
                 contentContainerStyle={styles.contentContainer}
@@ -201,27 +202,25 @@ const PersonalizationScreen = () => {
                 </View>
 
                 <View style={styles.tabContainer}>
-                    {/* Botón Imagen - Usa handleTabChange */}
                     <TouchableOpacity
                         style={[
                             styles.tabButton,
                             activeTab === 'image' && { backgroundColor: tabActiveBgColor },
                             { borderColor: tabActiveBgColor }
                         ]}
-                        onPress={() => handleTabChange('image')} // 👈 Uso de handleTabChange
+                        onPress={() => handleTabChange('image')}
                     >
                         <Text style={[styles.tabText, { color: activeTab === 'image' ? tabActiveTextColor : tabInactiveTextColor }]}>
                             Imagen
                         </Text>
                     </TouchableOpacity>
-                    {/* Botón Texto - Usa handleTabChange */}
                     <TouchableOpacity
                         style={[
                             styles.tabButton,
                             activeTab === 'text' && { backgroundColor: tabActiveBgColor },
                             { borderColor: tabActiveBgColor }
                         ]}
-                        onPress={() => handleTabChange('text')} // 👈 Uso de handleTabChange
+                        onPress={() => handleTabChange('text')}
                     >
                         <Text style={[styles.tabText, { color: activeTab === 'text' ? tabActiveTextColor : tabInactiveTextColor }]}>
                             Texto
@@ -252,17 +251,21 @@ const PersonalizationScreen = () => {
                     <Text style={[styles.previewButtonText, { color: buttonTextColor }]}>Ver Preview</Text>
                 </TouchableOpacity>
             </ScrollView>
-        </SafeAreaView>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
-    safeArea: { flex: 1 },
+    // Estilo que se usará para SafeAreaView en Carga/Error
+    safeArea: { flex: 1 }, 
+
+    rootContainer: { flex: 1 },
     scrollView: { flex: 1 },
     contentContainer: {
         alignItems: 'center',
         paddingVertical: 20,
     },
+    // Ajustado para que el loading container use flex: 1, ahora es hijo de SafeAreaView
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
