@@ -1,73 +1,84 @@
 // app/_layout.tsx
 
-import { Stack, useRouter, useSegments } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import React, { useEffect, useState } from 'react'; // 👈 Importamos useState
-import AppLoader from '../components/AppLoader';
-import { AuthProvider, useAuth } from '../hooks/useAuth';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Stack, useRouter, useSegments } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import React, { useEffect, useState } from "react";
+import AppLoader from "../components/AppLoader";
+import { AuthProvider, useAuth } from "../hooks/useAuth";
 
 // ***** PASO CLAVE: AGREGAR ESTAS IMPORTACIONES *****
-import '@react-three/fiber/native';
-import 'expo-file-system';
+import "@react-three/fiber/native";
+import "expo-file-system";
 // *************************************************
 
 SplashScreen.preventAutoHideAsync();
+
+const STORAGE_KEY = "HAS_VIEWED_ONBOARDING";
 
 const InitialLayout = () => {
   const { user, isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
-  // 1. Nuevo estado para controlar la transición después de la espera mínima.
-  const [isDelayedReady, setIsDelayedReady] = useState(false); 
+  const [isDelayedReady, setIsDelayedReady] = useState(false);
+  const [hasViewedOnboarding, setHasViewedOnboarding] = useState<boolean | null>(null);
 
+  // Cargar flag de AsyncStorage
   useEffect(() => {
-    // Si aún está cargando la autenticación, o si la bandera de "listo con retraso" ya está en true, salimos.
-    if (isDelayedReady) return;
+    const loadFlag = async () => {
+      try {
+        const value = await AsyncStorage.getItem(STORAGE_KEY);
+        // --- INICIO DE CAMBIO ---
+        const viewed = value === "true";
+        console.log("Onboarding Flag Loaded:", viewed, "Raw value:", value);
+        setHasViewedOnboarding(viewed);
+      } catch (error) {
+        console.error("Error loading onboarding flag:", error);
+        setHasViewedOnboarding(false);
+      }
+    };
+    loadFlag();
+  }, []);
 
-    if (isLoading) {
-      return; // Esperar a que la verificación de Auth (isLoading) termine
-    }
+  // Lógica del delay de 5 segundos
+  useEffect(() => {
+    if (isDelayedReady || isLoading) return;
 
-    // 2. Ejecutar la lógica de espera mínima de 5 segundos.
-    const minimumTimePromise = new Promise(resolve => 
-      setTimeout(resolve, 5000) // 👈 Retraso de 5 segundos (5000 ms)
+    const minimumTimePromise = new Promise(resolve =>
+      setTimeout(resolve, 5000)
     );
 
-    // 3. Esperar que el tiempo mínimo termine
-    minimumTimePromise.then(() => {
-        setIsDelayedReady(true); // Marcar como listo DESPUÉS del retraso
-    });
+    minimumTimePromise.then(() => setIsDelayedReady(true));
+  }, [isLoading, isDelayedReady]);
 
-  }, [isLoading, isDelayedReady]); // Depende de isLoading y su propio estado de retraso
-
-  // 4. Efecto de Redirección (Se ejecuta DESPUÉS de que isDelayedReady cambia a true)
+  // Redirecciones
   useEffect(() => {
-      // Solo procede a redirigir una vez que la pantalla de carga ha sido vista por el tiempo deseado.
-      if (!isDelayedReady) {
-          return;
+    if (!isDelayedReady || hasViewedOnboarding === null) return;
+
+    SplashScreen.hideAsync();
+
+    const inAuthGroup = segments[0] === "(auth)";
+
+    if (user && inAuthGroup) {
+      if (hasViewedOnboarding) {
+        console.log("Redirecting: User logged in, Onboarding SKIPPED.");
+        router.replace("/");
+      } else {
+        console.log("Redirecting: User logged in, showing Onboarding.");
+        router.replace("/OnboardingScreen");
       }
+    } else if (!user && !inAuthGroup) {
+        console.log("Redirecting: User logged out, going to login.");
+      router.replace("/(auth)/login");
+    }
+  }, [user, isDelayedReady, segments, hasViewedOnboarding]);
 
-      // Una vez que el tiempo mínimo y la carga han terminado, ocultamos el Splash nativo.
-      SplashScreen.hideAsync();
-
-      const inAuthGroup = segments[0] === '(auth)';
-
-      if (user && inAuthGroup) {
-          router.replace('/');
-      } else if (!user && !inAuthGroup) {
-          router.replace('/(auth)/login');
-      }
-      
-  }, [user, isDelayedReady, segments]);
-
-
-  // 5. Muestra la pantalla de carga si aún no está listo el retraso O la autenticación.
-  if (isLoading || !isDelayedReady) {
+  // Loader mientras carga
+  if (isLoading || !isDelayedReady || hasViewedOnboarding === null) {
     return <AppLoader />;
   }
 
-  // 6. Renderiza la navegación solo cuando isDelayedReady es true.
   return <Stack screenOptions={{ headerShown: false }} />;
 };
 
