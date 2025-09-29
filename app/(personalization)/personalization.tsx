@@ -11,7 +11,6 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-// ⚠️ Vuelve a importar SafeAreaView para usarlo SOLO en los estados de Carga/Error.
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import ImageSection from '../../components/ImageSection';
@@ -24,19 +23,37 @@ const { width } = Dimensions.get('window');
 
 type PersonalizationMode = 'image' | 'text';
 
+// 1. Constante para el estado inicial de TextData
+const DEFAULT_TEXT_DATA: TextData = {
+    text: '',
+    color: '#000000',
+    size: 24,
+    fontWeight: 'normal',
+    fontStyle: 'normal',
+};
+
+// 2. AÑADIDO: Interfaz de Props esperada para ModelViewer.
+// Esto soluciona el error de tipado en este archivo.
+// NOTA: Esta interfaz DEBERÍA ser exportada desde '../../components/ModelViewer.tsx'
+// para una implementación correcta en producción.
+interface ModelViewerProps {
+    modelUrl: string;
+    textData: TextData;
+    selectedImage: { uri: string } | null;
+}
+
+// 3. AÑADIDO: Definición tipada del componente ModelViewer
+const ModelViewerTyped = ModelViewer as React.ComponentType<ModelViewerProps>;
+
+
 const PersonalizationScreen = () => {
     const { modelId } = useLocalSearchParams() as { modelId: string };
     const [modelData, setModelData] = useState<ProductModel | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedImage, setSelectedImage] = useState<{ uri: string } | null>(null);
 
-    const [textData, setTextData] = useState<TextData>({
-        text: '',
-        color: '#000000',
-        size: 24,
-        fontWeight: 'normal',
-        fontStyle: 'normal',
-    });
+    // 2. Usar la constante para inicializar el estado
+    const [textData, setTextData] = useState<TextData>(DEFAULT_TEXT_DATA);
 
     const router = useRouter();
     const [activeTab, setActiveTab] = useState<PersonalizationMode>('image');
@@ -108,7 +125,8 @@ const PersonalizationScreen = () => {
         } else if (activeTab === 'text' && textData.text.trim() !== '') {
             hasData = true;
             dataName = 'el texto';
-            clearData = () => setTextData({ text: '', color: '#000000', size: 24, fontWeight: 'normal', fontStyle: 'normal' });
+            // 3. Usar la constante DEFAULT_TEXT_DATA aquí también
+            clearData = () => setTextData(DEFAULT_TEXT_DATA);
         }
 
         // 2. Si hay datos, pedir confirmación
@@ -138,7 +156,41 @@ const PersonalizationScreen = () => {
     };
 
     const handleGoBack = () => router.back();
-    const handleRefresh = () => console.log('Refrescar');
+    
+    // ⭐ IMPLEMENTACIÓN DE LA FUNCIÓN DE REINICIO SIMPLIFICADA
+    const handleRefresh = () => {
+        const hasImage = selectedImage !== null;
+        const hasText = textData.text.trim() !== '';
+
+        // 1. Si no hay nada que reiniciar, no hacemos nada ni mostramos alerta.
+        if (!hasImage && !hasText) {
+            return;
+        }
+
+        // 2. Si hay datos, pedimos confirmación.
+        Alert.alert(
+            "Reiniciar Personalización",
+            "¿Estás seguro de que quieres limpiar toda la personalización (imagen y texto)? Esta acción no se puede deshacer.",
+            [
+                {
+                    text: "Cancelar",
+                    style: "cancel"
+                },
+                {
+                    text: "Reiniciar Todo",
+                    onPress: () => {
+                        setSelectedImage(null); // Limpiar imagen
+                        setTextData(DEFAULT_TEXT_DATA); // Limpiar texto y estilos
+                        // Volvemos a la pestaña de Imagen, que es la primera.
+                        setActiveTab('image'); 
+                        // 3. Eliminamos el alert de confirmación de reinicio exitoso.
+                    },
+                    style: 'destructive'
+                }
+            ]
+        );
+    };
+
     const handlePreview = () => {
         console.log('Ver Preview');
         console.log('Imagen seleccionada:', selectedImage);
@@ -183,6 +235,7 @@ const PersonalizationScreen = () => {
                             <Ionicons name="arrow-back" size={28} color={headerTextColor} />
                         </TouchableOpacity>
                     ),
+                    // Este es el botón de Reinicio, ahora con la lógica de handleRefresh
                     headerRight: () => (
                         <TouchableOpacity onPress={handleRefresh} style={styles.headerButton}>
                             <Ionicons name="reload-outline" size={28} color={headerTextColor} />
@@ -198,7 +251,12 @@ const PersonalizationScreen = () => {
             >
                 <View style={[styles.productCard, { backgroundColor: cardBgColor, borderColor: cardBorderColor }]}>
                     <Text style={[styles.productTitle, { color: titleTextColor }]}>{modelData.product_name}</Text>
-                    <ModelViewer modelUrl={modelData.model_url} />
+                    {/* 4. Usamos el componente tipado para evitar el error de TS */}
+                    <ModelViewerTyped 
+                        modelUrl={modelData.model_url}
+                        textData={textData}
+                        selectedImage={selectedImage}
+                    />
                 </View>
 
                 <View style={styles.tabContainer}>
