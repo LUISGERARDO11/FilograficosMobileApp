@@ -1,42 +1,84 @@
-#This is a GitHub Actions workflow configuration file for running frontend tests.
-#Here's a breakdown of what each part of the configuration does:
-name: Frontend Tests
+# ------------------------------------------------------------
+# 📱 FRONTEND TESTS (EXPO + JEST)
+# Ejecuta pruebas de React Native con Jest y muestra un resumen visual
+# ------------------------------------------------------------
+
+name: Run Frontend Tests
 
 on:
   push:
     branches:
-      - main
       - develop
+      - main
   pull_request:
     branches:
-      - main
       - develop
+      - main
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      # --- PASO 1: Checkout del repositorio ---
+      - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Setup Node
+      # --- PASO 2: Configurar Node.js ---
+      - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: 'npm'
 
+      # --- PASO 3: Instalar dependencias ---
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests
-        run: npm test
+      # --- PASO 5: Ejecutar pruebas y generar JSON ---
+      - name: Run Jest tests
+        env:
+          NODE_ENV: test
+          EXPO_OS: android
+        run: npm test -- --json --outputFile=__tests__/jest-results.json
 
+      # --- PASO 6: Generar resumen visual en GitHub ---
+      - name: Generate Test Summary
+        if: always()
+        shell: bash
+        run: |
+          sudo apt-get update && sudo apt-get install -y jq
+          RESULTS_FILE="__tests__/jest-results.json"
+
+          if [ -f "$RESULTS_FILE" ]; then
+            PASSED=$(jq .numPassedTests "$RESULTS_FILE")
+            FAILED=$(jq .numFailedTests "$RESULTS_FILE")
+            TOTAL=$(jq .numTotalTests "$RESULTS_FILE")
+            TIME=$(jq .testResults[0].perfStats.runtime "$RESULTS_FILE" | awk '{printf "%.1f", $1/1000}')
+            
+            SUMMARY_ICON="✅"
+            if [ "$FAILED" -gt 0 ]; then
+              SUMMARY_ICON="❌"
+            fi
+
+            SUMMARY_TEXT="$SUMMARY_ICON **$PASSED** tests passed — **$FAILED** failed — **$TOTAL** total — duration: **$TIME** s"
+            echo "$SUMMARY_TEXT" >> $GITHUB_STEP_SUMMARY
+
+            if [ "$FAILED" -gt 0 ]; then
+              echo "## Detalles de la Ejecución" >> $GITHUB_STEP_SUMMARY
+              echo "Consulta los logs para más información sobre los tests fallidos." >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "⚠️ **Advertencia:** No se encontró el archivo de resultados JSON. Las pruebas pudieron haber fallado antes de generarlo." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      # --- PASO 7: Generar y subir reporte de cobertura ---
       - name: Generate coverage report
+        if: success()
         run: npm run test:coverage
 
-      # (Opcional) sube el reporte como artefacto del workflow
       - name: Upload coverage report
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
