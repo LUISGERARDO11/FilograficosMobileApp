@@ -1,3 +1,5 @@
+#This is a GitHub Actions workflow configuration file for running frontend tests.
+#Here's a breakdown of what each part of the configuration does:
 name: Frontend Tests
 
 on:
