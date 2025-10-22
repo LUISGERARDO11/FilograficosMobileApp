@@ -262,7 +262,7 @@ const PersonalizationScreen = () => {
                     ),
                     // Este es el botón de Reinicio, ahora con la lógica de handleRefresh
                     headerRight: () => (
-                        <TouchableOpacity onPress={handleRefresh} style={styles.headerButton}>
+                        <TouchableOpacity onPress={handleRefresh} style={styles.headerButton} testID="reset-button">
                             <Ionicons name="reload-outline" size={28} color={headerTextColor} />
                         </TouchableOpacity>
                     ),

@@ -59,18 +59,15 @@ const HomeScreen = () => {
     };
 
     return (
-      // La SafeAreaView ya maneja el espacio de la barra de estado
       <SafeAreaView style={[styles.safeArea, { backgroundColor: mainBgColor }]}>
         <View style={[styles.container, { backgroundColor: mainBgColor }]}>
-          {/* El header ya no necesita el paddingTop excesivo */}
           <View style={[styles.header, { backgroundColor: mainBgColor }]}>
-            <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
+            <TouchableOpacity testID="menu-button" onPress={toggleMenu} style={styles.menuButton}>
               <Ionicons name="menu" size={32} color={headerTitleColor} />
             </TouchableOpacity>
             <Text style={[styles.headerTitle, { color: headerTitleColor }]}>Selecciona tu producto</Text>
           </View>
 
-          {/* El componente de selección se integra directamente sin contenedor extra */}
           <ProductSelection />
           
           {isMenuOpen && (
@@ -79,11 +76,6 @@ const HomeScreen = () => {
               onPress={toggleMenu}
               activeOpacity={1}
             >
-              {/* Para que el menú respete la barra de estado, también debes usar SafeAreaView
-                  dentro del menú si usas estilos absolutos, o ajustar el padding manualmente.
-                  Aquí ajustamos el padding del menú para que la x quede en la zona segura.
-                  Quitaremos el paddingTop: 50 del menú y dejaremos que SafeAreaView de la
-                  pantalla principal haga el trabajo. */}
               <View style={[styles.menu, { backgroundColor: menuBgColor }]}>
                 <View style={styles.menuContent}>
                   <View style={styles.menuHeader}>
@@ -116,7 +108,7 @@ const HomeScreen = () => {
                       <Text style={[styles.helpText, { color: helpTextColor }]}>Ayuda</Text>
                     </TouchableOpacity>
                     
-                    <TouchableOpacity style={[styles.logoutButton, { backgroundColor: logoutButtonBg }]} onPress={signOut}>
+                    <TouchableOpacity testID="logout-button" style={[styles.logoutButton, { backgroundColor: logoutButtonBg }]} onPress={signOut}>
                       <Ionicons name="log-out-outline" size={24} color={logoutTextColor} />
                       <Text style={[styles.logoutText, { color: logoutTextColor }]}>Cerrar Sesión</Text>
                     </TouchableOpacity>

@@ -2,10 +2,15 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
-    "skipLibCheck": true,       // 👈 ignora chequeo en node_modules
+    "skipLibCheck": true,
     "paths": {
       "@/*": ["./*"]
-    }
+    },
+    // 👇 AÑADE ESTA LÍNEA
+    "types": [
+      "jest",
+      "node" // Útil si usas módulos Node en tus tests (como 'fs')
+    ]
   },
   "include": [
     "**/*.ts",
@@ -14,6 +19,6 @@
     "expo-env.d.ts"
   ],
   "exclude": [
-    "node_modules"              // 👈 evita que tu TS server entre a los tsconfig internos
+    "node_modules"
   ]
 }

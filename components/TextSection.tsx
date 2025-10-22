@@ -66,6 +66,7 @@ const TextSection: React.FC<TextSectionProps> = ({ textData, onTextChange }) => 
             <View style={styles.inputContainer}>
                 <Text style={[styles.label, { color: primaryTextColor }]}>Tu texto</Text>
                 <TextInput
+                    testID="text-input"
                     value={textData.text}
                     onChangeText={(text) => updateTextData('text', text)}
                     placeholder="Escribe tu texto aquí..."
@@ -88,6 +89,7 @@ const TextSection: React.FC<TextSectionProps> = ({ textData, onTextChange }) => 
                     Tamaño de fuente: {textData.size}px
                 </Text>
                 <Slider
+                    testID="size-slider"
                     style={styles.slider}
                     minimumValue={12}
                     maximumValue={48}
@@ -112,6 +114,7 @@ const TextSection: React.FC<TextSectionProps> = ({ textData, onTextChange }) => 
                 <View style={styles.colorPalette}>
                     {INITIAL_COLORS.map((color) => (
                         <TouchableOpacity
+                            testID={`color-${color}`}
                             key={color}
                             onPress={() => updateTextData('color', color)}
                             style={[

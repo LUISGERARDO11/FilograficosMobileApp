@@ -22,10 +22,10 @@ export interface SelectedImage {
 /**
  * Define la estructura completa de los datos de personalización que se enviarán al preview.
  */
-export interface PersonalizationParams {
-    modelId: string; // ID del modelo 3D (e.g., "1", "2")
-    selectedImageUri: string | null; // URI de la imagen para la textura
-    textData: TextData; // Datos del texto y estilo
+export interface ModelViewerProps {
+  modelUrl: string;
+  selectedImage?: SelectedImage | null;
+  textData?: TextData;
 }
 
 // Exportamos también la interfaz ProductModel para completar los tipos del servicio (opcional, pero buena práctica)

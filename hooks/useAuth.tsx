@@ -92,7 +92,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     } catch (error: any) {
       console.error("Sign-in failed:", error.response?.data || error.message);
-      throw new Error(error.response?.data?.message || 'Error en el inicio de sesión');
+      throw new Error(error.message || error.response?.data?.message || 'Error en el inicio de sesión');
     }
   };
 

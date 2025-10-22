@@ -85,59 +85,63 @@ const ProductSelection = () => {
         );
     }
     // ... (rest of the component remains the same)
-    
-    const renderItem = ({ item, index }: { item: ProductModel, index: number }) => {
-        const accentColor = ACCENT_COLORS[index % ACCENT_COLORS.length];
+const renderItem = ({ item, index }: { item: ProductModel, index: number }) => {
+  const accentColor = ACCENT_COLORS[index % ACCENT_COLORS.length];
 
-        return (
-            <Animated.View
-                style={[
-                    {
-                        opacity: animatedValues[index],
-                        transform: [
-                            {
-                                translateY: animatedValues[index].interpolate({
-                                    inputRange: [0, 1],
-                                    outputRange: [50, 0],
-                                }),
-                            },
-                        ],
-                    },
-                    viewMode === 'list' ? { width: width - 40 } : { width: (width / 2) - 20, marginHorizontal: 10 },
-                ]}
-            >
-                <ProductItem
-                    item={item}
-                    viewMode={viewMode}
-                    onPress={handleProductPress}
-                    accentColor={accentColor}
-                />
-            </Animated.View>
-        );
-    };
+  return (
+    <Animated.View
+      style={[
+        {
+          opacity: animatedValues[index],
+          transform: [
+            {
+              translateY: animatedValues[index].interpolate({
+                inputRange: [0, 1],
+                outputRange: [50, 0],
+              }),
+            },
+          ],
+        },
+        viewMode === 'list' ? { width: width - 40 } : { width: (width / 2) - 20, marginHorizontal: 10 },
+      ]}
+    >
+      <ProductItem
+        testID = {`product-item-${item.id}`}
+        item={item}
+        viewMode={viewMode}
+        onPress={handleProductPress}
+        accentColor={accentColor}
+      />
+    </Animated.View>
+  );
+};
 
-    return (
-        <View style={styles.container}>
-            <View style={styles.controlsContainer}>
-                <Text style={[styles.title, { color: mainTextColor }]}>Elige un producto</Text>
-                <TouchableOpacity onPress={toggleViewMode}>
-                    <Ionicons
-                        name={viewMode === 'list' ? 'grid-outline' : 'list'}
-                        size={30}
-                        color={mainTextColor}
-                    />
-                </TouchableOpacity>
-            </View>
-            <FlatList
-                key={viewMode}
-                data={models}
-                renderItem={renderItem}
-                keyExtractor={(item) => item.id.toString()}
-                numColumns={viewMode === 'grid' ? 2 : 1}
-                contentContainerStyle={viewMode === 'list' ? styles.listContainer : styles.gridContainer}
-            />
-        </View>
-    );
+return (
+  <View style={styles.container}>
+    <View style={styles.controlsContainer}>
+      <Text style={[styles.title, { color: mainTextColor }]}>Elige un producto</Text>
+      <TouchableOpacity testID="toggle-view" onPress={toggleViewMode}>
+        <Ionicons
+          name={viewMode === 'list' ? 'grid-outline' : 'list'}
+          size={30}
+          color={mainTextColor}
+        />
+      </TouchableOpacity>
+    </View>
+    <FlatList
+      testID="flatlist"
+      key={viewMode}
+      data={models}
+      renderItem={renderItem}
+      keyExtractor={(item) => item.id.toString()}
+      numColumns={viewMode === 'grid' ? 2 : 1}
+      contentContainerStyle={viewMode === 'list' ? styles.listContainer : styles.gridContainer}
+      ListFooterComponent={
+        <View testID={viewMode === 'list' ? 'list-view' : 'grid-view'} /> // ✅ testID
+      }
+    />
+  </View>
+);
 };
 
 const styles = StyleSheet.create({

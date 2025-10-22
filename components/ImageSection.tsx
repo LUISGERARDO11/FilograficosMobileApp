@@ -43,40 +43,51 @@ const ImageSection: React.FC<ImageSectionProps> = ({ selectedImage, onImageSelec
 
         try {
             if (source === 'camera') {
-                const cameraPermission = await ImagePicker.requestCameraPermissionsAsync();
-                if (!cameraPermission.granted) {
-                    Alert.alert('Permiso Requerido', 'Necesitamos acceso a la cámara para que puedas tomar una foto.');
-                    return;
-                }
-                
-                result = await ImagePicker.launchCameraAsync({
-                    // ✅ CAMBIO A LA SINTAXIS COMPATIBLE CON LA VERSIÓN 17.x
-                    mediaTypes: ImagePicker.MediaTypeOptions.Images, 
-                    allowsEditing: true,
-                    // ...
-                });
+            const cameraPermission = await ImagePicker.requestCameraPermissionsAsync();
+            if (!cameraPermission.granted) {
+                Alert.alert('Permiso Requerido', 'Necesitamos acceso a la cámara para que puedas tomar una foto.');
+                return;
+            }
+            
+            result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+            });
+            } else {
+            const libraryPermission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (!libraryPermission.granted) {
+                Alert.alert('Permiso Requerido', 'Necesitamos acceso a tu galería para seleccionar una imagen.');
+                return;
+            }
 
-            } else { // source === 'gallery'
-                const libraryPermission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-                if (!libraryPermission.granted) {
-                    Alert.alert('Permiso Requerido', 'Necesitamos acceso a tu galería para seleccionar una imagen.');
-                    return;
-                }
-
-                result = await ImagePicker.launchImageLibraryAsync({
-                    // ✅ CAMBIO A LA SINTAXIS COMPATIBLE CON LA VERSIÓN 17.x
-                    mediaTypes: ImagePicker.MediaTypeOptions.Images, 
-                    allowsEditing: true,
-                    aspect: [4, 3],
-                    quality: 0.7,
-                });
+            result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [4, 3],
+                quality: 0.7,
+            });
             }
 
             if (!result.canceled) {
-                const imageUri = result.assets[0].uri; 
-                onImageSelect(imageUri);
+            const image = result.assets[0];
+            const imageUri = image.uri;
+            
+            // Validar formato (solo JPEG y PNG)
+            const validFormats = ['.jpg', '.jpeg', '.png'];
+            const isValidFormat = validFormats.some(format => imageUri.toLowerCase().endsWith(format));
+            if (!isValidFormat) {
+                Alert.alert('Formato no válido', 'Por favor selecciona una imagen en formato JPEG o PNG.');
+                return;
             }
 
+            // Validar tamaño (máximo 5MB)
+            if (image.fileSize && image.fileSize > 5 * 1024 * 1024) {
+                Alert.alert('Tamaño excesivo', 'La imagen debe ser menor a 5MB.');
+                return;
+            }
+
+            onImageSelect(imageUri);
+            }
         } catch (error) {
             console.error("Error al seleccionar la imagen:", error);
             Alert.alert("Error", "Ocurrió un error al intentar acceder a la fuente de la imagen.");
@@ -102,7 +113,7 @@ const ImageSection: React.FC<ImageSectionProps> = ({ selectedImage, onImageSelec
                     <View style={styles.imageInfoBar}>
                         <Text style={[styles.imagePreviewText, { color: primaryTextColor }]}>Imagen seleccionada</Text>
                         {/* Botón de eliminar conservado */}
-                        <TouchableOpacity onPress={onImageRemove} style={[styles.removeButton, { backgroundColor: removeButtonBg }]}>
+                        <TouchableOpacity testID="remove-button" onPress={onImageRemove} style={[styles.removeButton, { backgroundColor: removeButtonBg }]}>
                             <Ionicons name="trash" size={20} color={removeButtonColor} />
                         </TouchableOpacity>
                     </View>
