@@ -1,5 +1,4 @@
 // components/ProductItem.tsx
-
 import { Ionicons } from '@expo/vector-icons';
 import React, { useRef } from 'react';
 import { Animated, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -11,6 +10,7 @@ interface ProductItemProps {
   viewMode: 'list' | 'grid';
   onPress: (item: ProductModel) => void;
   accentColor: string;
+  testID?: string;
 }
 
 const ProductItem = ({ item, viewMode, onPress, accentColor }: ProductItemProps) => {
@@ -38,6 +38,7 @@ const ProductItem = ({ item, viewMode, onPress, accentColor }: ProductItemProps)
     return (
       <Animated.View style={[styles.animatedView, { transform: [{ scale: scaleValue }] }]}>
         <TouchableOpacity
+          testID={`product-item-${item.id}`}
           style={[styles.listCard, { backgroundColor: cardBgColor }]}
           onPress={() => onPress(item)}
           onPressIn={handlePressIn}
@@ -45,7 +46,11 @@ const ProductItem = ({ item, viewMode, onPress, accentColor }: ProductItemProps)
           activeOpacity={0.8}
         >
           <View style={styles.cardContent}>
-            <Image source={{ uri: item.preview_image_url }} style={styles.listImage} />
+            <Image 
+              testID="product-image"
+              source={{ uri: item.preview_image_url }} 
+              style={styles.listImage} 
+            />
             <View style={styles.textContainer}>
               <Text style={[styles.productName, { color: accentColor }]}>{item.product_name}</Text>
               <Text style={styles.productDescription}>{item.description}</Text>
@@ -59,13 +64,18 @@ const ProductItem = ({ item, viewMode, onPress, accentColor }: ProductItemProps)
     return (
       <Animated.View style={[styles.animatedView, { transform: [{ scale: scaleValue }] }]}>
         <TouchableOpacity
+          testID={`product-item-${item.id}`}
           style={[styles.gridItem, { backgroundColor: gridItemColor }]}
           onPress={() => onPress(item)}
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
           activeOpacity={0.8}
         >
-          <Image source={{ uri: item.preview_image_url }} style={styles.gridImage} />
+          <Image 
+            testID="product-image"
+            source={{ uri: item.preview_image_url }} 
+            style={styles.gridImage} 
+          />
           <Text style={[styles.gridText, { color: accentColor }]}>{item.product_name}</Text>
         </TouchableOpacity>
       </Animated.View>
@@ -75,7 +85,6 @@ const ProductItem = ({ item, viewMode, onPress, accentColor }: ProductItemProps)
 
 const styles = StyleSheet.create({
   animatedView: {
-    // No definimos ancho aquí, lo hará el componente padre
     marginVertical: 8,
   },
   listCard: {

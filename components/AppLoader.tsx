@@ -165,6 +165,7 @@ const AppLoader = () => {
 
   return (
     <LinearGradient
+      testID="app-loader"
       colors={["#001F54", "#1a365d", "#2a4a6b"]}
       style={styles.container}
     >

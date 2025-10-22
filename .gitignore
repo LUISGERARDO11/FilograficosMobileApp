@@ -41,3 +41,18 @@ app-example
 # generated native folders
 /ios
 /android
+
+# Build y coverage
+coverage/
+jest-html-reporters-*.html
+
+# Archivos temporales de test
+*.log
+temp/
+.cache/
+
+# Archivos de entorno
+.env
+.env.test
+.env.production
+.env.development

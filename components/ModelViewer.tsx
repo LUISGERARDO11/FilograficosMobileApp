@@ -6,10 +6,10 @@ import { OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import React, { Suspense, useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { useThemeColor } from "../hooks/use-theme-color";
 

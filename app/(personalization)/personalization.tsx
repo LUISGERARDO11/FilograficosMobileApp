@@ -191,10 +191,35 @@ const PersonalizationScreen = () => {
         );
     };
 
-    const handlePreview = () => {
-        console.log('Ver Preview');
-        console.log('Imagen seleccionada:', selectedImage);
-        console.log('Datos de texto:', textData);
+   const handlePreview = () => {
+        // Se asume que modelData está disponible aquí debido a las comprobaciones anteriores
+        if (!modelData) {
+            Alert.alert("Error de Datos", "No se puede obtener la URL del modelo 3D.");
+            return;
+        }
+
+        if (!selectedImage && textData.text.trim() === '') {
+            Alert.alert("Personalización Requerida", "Debes seleccionar una imagen o ingresar un texto para la vista previa.");
+            return;
+        }
+
+        // ⭐ CORRECCIÓN CLAVE: Codificar la URL del modelo 3D antes de pasarla
+        const encodedModelUrl = encodeURI(modelData.model_url);
+        
+        const serializedTextData = JSON.stringify(textData);
+
+        // AÑADIDO: Incluir la URL del modelo 3D
+        router.push({
+            pathname: '/(personalization)/preview', 
+            params: {
+                modelId: modelId,
+                selectedImageUri: selectedImage ? selectedImage.uri : null, 
+                textData: serializedTextData,
+                modelUrl: encodedModelUrl, // 👈 USAMOS LA URL CODIFICADA
+            },
+        });
+
+        console.log('Navegando a Preview con:', { modelId, modelUrl: encodedModelUrl, selectedImage, textData });
     };
 
     if (isLoading) {
@@ -237,7 +262,7 @@ const PersonalizationScreen = () => {
                     ),
                     // Este es el botón de Reinicio, ahora con la lógica de handleRefresh
                     headerRight: () => (
-                        <TouchableOpacity onPress={handleRefresh} style={styles.headerButton}>
+                        <TouchableOpacity onPress={handleRefresh} style={styles.headerButton} testID="reset-button">
                             <Ionicons name="reload-outline" size={28} color={headerTextColor} />
                         </TouchableOpacity>
                     ),
