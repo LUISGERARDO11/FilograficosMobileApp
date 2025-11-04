@@ -2,9 +2,8 @@
 module.exports = {
   presets: ['babel-preset-expo'],
   plugins: [
-    // ¡ELIMINAR: 'expo-router/babel', ESTO ESTÁ CAUSANDO LA FALLA EN SDK 54!
+    // La funcionalidad de expo-router/babel ya está en presets: ['babel-preset-expo']
     
-    // Tus otros plugins existentes (mantener)
     ['@babel/plugin-transform-flow-strip-types'],
     ['@babel/plugin-transform-class-properties', { loose: true }],
     ['@babel/plugin-transform-private-methods', { loose: true }],
