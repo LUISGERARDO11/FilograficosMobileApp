@@ -107,7 +107,8 @@ jobs:
           npm ci
           # Instalamos EAS CLI globalmente en el runner
           npm install -g eas-cli 
-          
+
+        
       # 2. Iniciar sesión en EAS usando el secreto
       - name: Login to EAS
         run: eas login
