@@ -110,7 +110,9 @@ jobs:
           
       # 2. Iniciar sesión en EAS usando el secreto
       - name: Login to EAS
-        run: eas login --token ${{ secrets.EXPO_TOKEN }}
+        run: eas login
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         
       # 3. Ejecutar EAS Build para Android
       - name: EAS Build for Android (Production)
