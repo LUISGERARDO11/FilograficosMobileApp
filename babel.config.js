@@ -1,11 +1,10 @@
-// babel.config.js - ESTA ES LA VERSIÓN CORRECTA
+// babel.config.js - CORRECCIÓN DEFINITIVA
 module.exports = {
   presets: ['babel-preset-expo'],
   plugins: [
-    // 🚀 ESTO ES VITAL Y ESTABA FALTANDO
-    'expo-router/babel', 
-
-    // Tus otros plugins
+    // ¡ELIMINAR: 'expo-router/babel', ESTO ESTÁ CAUSANDO LA FALLA EN SDK 54!
+    
+    // Tus otros plugins existentes (mantener)
     ['@babel/plugin-transform-flow-strip-types'],
     ['@babel/plugin-transform-class-properties', { loose: true }],
     ['@babel/plugin-transform-private-methods', { loose: true }],
