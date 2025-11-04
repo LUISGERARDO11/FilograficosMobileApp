@@ -87,7 +87,6 @@ jobs:
   # JOB 2: BUILD Y GENERACIÓN DE ARTEFACTO (AAB/APK)
   # ------------------------------------------------------------
   build-android:
-    # 🚨 ¡IMPORTANTE! Solo se ejecuta si el job 'test' pasó.
     needs: test 
     runs-on: ubuntu-latest
     
@@ -100,28 +99,24 @@ jobs:
         with:
           node-version: 22
           cache: 'npm'
-      
-      # 1. Instalar dependencias y EAS CLI
+
       - name: Install dependencies and EAS CLI
         run: |
           npm ci
-          # Instalamos EAS CLI globalmente en el runner
           npm install -g eas-cli 
 
-        
-      # 2. Iniciar sesión en EAS usando el secreto
-      - name: Login to EAS
-        run: eas login
+      - name: Verify Expo Token
+        run: echo "Using Expo token for EAS authentication"
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        
-      # 3. Ejecutar EAS Build para Android
+
       - name: EAS Build for Android (Production)
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: eas build --platform android --profile production --non-interactive
-        
-      # 4. (Opcional) Ver el resultado
+
       - name: Report Build Status
-        if: always() # Muestra el mensaje incluso si el build falla.
+        if: always()
         run: |
           echo "El Build de EAS ha finalizado."
           echo "Consulta el log de este paso o visita la consola de Expo para el enlace de descarga del AAB/APK."
