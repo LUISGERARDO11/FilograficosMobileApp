@@ -3,7 +3,7 @@
 # Ejecuta pruebas de React Native con Jest y muestra un resumen visual
 # ------------------------------------------------------------
 
-name: Run Frontend Tests
+name: Run Frontend Tests and Build APK
 
 on:
   push:
@@ -35,18 +35,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # --- PASO 5: Ejecutar pruebas y generar JSON ---
+      # --- PASO 4: Ejecutar pruebas y generar JSON ---
       - name: Run Jest tests
         env:
           NODE_ENV: test
           EXPO_OS: android
         run: npm test -- --json --outputFile=__tests__/jest-results.json
 
-      # --- PASO 6: Generar resumen visual en GitHub ---
+      # --- PASO 5: Generar resumen visual en GitHub ---
       - name: Generate Test Summary
         if: always()
         shell: bash
         run: |
+          # Instalar jq para parsear el JSON
           sudo apt-get update && sudo apt-get install -y jq
           RESULTS_FILE="__tests__/jest-results.json"
 
@@ -54,7 +55,8 @@ jobs:
             PASSED=$(jq .numPassedTests "$RESULTS_FILE")
             FAILED=$(jq .numFailedTests "$RESULTS_FILE")
             TOTAL=$(jq .numTotalTests "$RESULTS_FILE")
-            TIME=$(jq .testResults[0].perfStats.runtime "$RESULTS_FILE" | awk '{printf "%.1f", $1/1000}')
+            # Esto asume que hay al menos un resultado de prueba para obtener el tiempo
+            TIME=$(jq .testResults[0].perfStats.runtime "$RESULTS_FILE" 2>/dev/null | awk '{printf "%.1f", $1/1000}' || echo "N/A")
             
             SUMMARY_ICON="✅"
             if [ "$FAILED" -gt 0 ]; then
@@ -72,7 +74,7 @@ jobs:
             echo "⚠️ **Advertencia:** No se encontró el archivo de resultados JSON. Las pruebas pudieron haber fallado antes de generarlo." >> $GITHUB_STEP_SUMMARY
           fi
 
-      # --- PASO 7: Generar y subir reporte de cobertura ---
+      # --- PASO 6: Generar y subir reporte de cobertura ---
       - name: Generate coverage report
         if: success()
         run: npm run test:coverage
@@ -83,13 +85,16 @@ jobs:
         with:
           name: coverage-report
           path: coverage/
-  # ------------------------------------------------------------
-  # JOB 2: BUILD Y GENERACIÓN DE ARTEFACTO (AAB/APK)
-  # ------------------------------------------------------------
+
+# ---
+# 📦 JOB 2: BUILD Y GENERACIÓN DE APK COMO ARTEFACTO DESCARGABLE
+# ---
   build-android:
-    needs: test 
+    needs: test
     runs-on: ubuntu-latest
-    
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -103,21 +108,52 @@ jobs:
       - name: Install dependencies and EAS CLI
         run: |
           npm ci
+          # Instalar EAS CLI globalmente
           npm install -g eas-cli 
 
-      - name: Verify Expo Token
-        run: echo "Using Expo token for EAS authentication"
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-
-      - name: EAS Build for Android (Production)
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: eas build --platform android --profile production --non-interactive
+      # Utilizaremos el perfil 'preview-apk' de eas.json para garantizar un APK
+      # El log de 'eas build' contendrá la URL de descarga del APK.
+      - name: EAS Build for Android (APK) and Capture Log
+        id: eas_build
+        run: |
+          echo "Iniciando build de APK con perfil 'preview-apk'..."
+          # Ejecutar build usando el perfil 'preview-apk' y guardar la salida en un archivo para parsear
+          eas build --platform android --profile preview-apk --non-interactive | tee eas_build_log.txt
+          
+          # --------------------------------------------------------------------------------
+          # PASO CLAVE: EXTRAER LA URL DEL APK DEL LOG
+          # --------------------------------------------------------------------------------
+          # Buscar la línea que contiene "Download URL" y extraer el último campo (la URL)
+          # Esto funciona porque 'eas build' siempre imprime la URL al final.
+          APK_URL=$(grep 'Download URL' eas_build_log.txt | tail -n 1 | awk '{print $NF}')
+          
+          if [ -z "$APK_URL" ]; then
+            echo "::error::No se pudo encontrar la URL de descarga del APK en el log de EAS."
+            exit 1
+          fi
+          
+          # Guardar la URL como output del paso para usarla en el siguiente paso
+          echo "APK_URL=$APK_URL" >> $GITHUB_OUTPUT
+          echo "URL de Descarga del APK: $APK_URL"
+          
+      - name: Download APK file
+        run: |
+          # Descargar el APK a un archivo local con un nombre estándar
+          # Usamos -L para seguir redirecciones
+          curl -L -o app-release.apk ${{ steps.eas_build.outputs.APK_URL }}
+          
+      # --- PASO FINAL: Subir el APK como artefacto de GitHub Actions ---
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          # El nombre del artefacto que aparecerá en la página de la corrida
+          name: app-apk
+          path: app-release.apk
+          retention-days: 5 # Define cuánto tiempo retener el artefacto (opcional)
 
       - name: Report Build Status
         if: always()
         run: |
-          echo "El Build de EAS ha finalizado."
-          echo "Consulta el log de este paso o visita la consola de Expo para el enlace de descarga del AAB/APK."
-          echo "Consola de Builds: https://expo.dev/accounts/luis2256/projects/FilograficosApp/builds"
+          echo "✅ Build de APK completado."
+          echo "🔗 El archivo APK se ha subido como un artefacto llamado 'app-apk' y está disponible para su descarga en la pestaña 'Summary' (Resumen) de esta corrida de GitHub Actions."
+          echo "Consola de Builds de Expo: https://expo.dev/accounts/luis2256/projects/FilograficosApp/builds"
