@@ -12,6 +12,7 @@ interface ModelViewerProps {
   modelUrl: string;
   textData: TextData;
   selectedImage: { uri: string } | null;
+  modelId: number; 
 }
 
 const ModelViewerTyped = ModelViewer as React.ComponentType<ModelViewerProps>;
@@ -50,9 +51,10 @@ const PreviewScreen = () => {
     }
 
     const selectedImage = selectedImageUri ? { uri: selectedImageUri } : null;
+    const modelIdString = modelId as string | undefined; // Mantener como string
 
     return {
-      modelId,
+      modelId: modelIdString,
       selectedImage,
       textData: parsedTextData || DEFAULT_TEXT_DATA,
       modelUrl,
@@ -62,10 +64,10 @@ const PreviewScreen = () => {
   const handleGoBack = () => router.back();
   const handleGoHome = () => router.push('/');
 
-  const { selectedImage, textData, modelUrl: finalModelUrl } = personalizationData;
+  const { selectedImage, textData, modelUrl: finalModelUrl, modelId: finalModelId } = personalizationData; // Obtener finalModelId
   const hasPersonalization = selectedImage || (textData.text && textData.text.trim() !== '');
 
-  if (!modelId || !finalModelUrl) {
+  if (!finalModelId || !finalModelUrl) {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: backgroundColor }]}>
         <Stack.Screen options={{
@@ -111,22 +113,12 @@ const PreviewScreen = () => {
       <ScrollView style={[styles.scrollView, { backgroundColor: backgroundColor }]} contentContainerStyle={styles.contentContainer}>
         <View style={[styles.modelContainer, { backgroundColor: cardBgColor }]}>
           <Text style={[styles.productTitle, { color: primaryTextColor }]}>Modelo ID: {modelId}</Text>
-          <Text style={[styles.productTitle, { color: primaryTextColor, fontSize: 16, marginBottom: 10 }]}>
-            Renderizado de Personalización
-          </Text>
-
           <ModelViewerTyped
             modelUrl={finalModelUrl}
             textData={textData}
             selectedImage={selectedImage}
+            modelId={parseInt(finalModelId, 10)}
           />
-
-          <View style={styles.dataDisplay}>
-            <Text style={[styles.dataTitle, { color: primaryTextColor }]}>Datos de Personalización Aplicados:</Text>
-            <Text style={[styles.dataText, { color: primaryTextColor }]}>- URL del Modelo: {finalModelUrl.substring(0, 50)}...</Text>
-            <Text style={[styles.dataText, { color: primaryTextColor }]}>- Imagen URI: {selectedImage?.uri}</Text>
-            <Text style={[styles.dataText, { color: primaryTextColor }]}>- Texto: "{textData.text || 'N/A'}"</Text>
-          </View>
         </View>
 
         <TouchableOpacity

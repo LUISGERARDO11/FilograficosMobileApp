@@ -9,146 +9,109 @@ import {
     Text,
     View,
 } from 'react-native';
-import { BufferAttribute, BufferGeometry, MeshStandardMaterial, Texture, Vector3 } from 'three';
+// ✨ Importar TRES para usar Box3, Vector3 y consts.
+import * as THREE from 'three';
+import { MeshStandardMaterial, Texture } from 'three';
 import { GLTFLoader } from 'three-stdlib';
 import { useThemeColor } from '../hooks/use-theme-color';
+import { getAdjustmenPersonalizationtByModelId } from '../utils/modelAdjustments';
+import { getConfigByModelId, ModelPersonalizationConfig } from '../utils/modelConfigs';
 import { TextData } from '../utils/types';
 
 interface ModelViewerProps {
     modelUrl: string;
     textData: TextData;
     selectedImage: { uri: string } | null;
+    modelId: number;
 }
 
 interface SceneProps {
     gltf: any;
     textData: TextData;
     texture: Texture | null;
+    modelId: number;
 }
 
-// Función para generar UVs cilíndricos
-const generateCylindricalUVs = (geometry: BufferGeometry) => {
-    const pos = geometry.attributes.position;
-    const uvs: number[] = [];
 
-    // Encontrar el centro y la altura del modelo
-    const center = new Vector3();
-    geometry.computeBoundingBox();
-    const bbox = geometry.boundingBox!;
-    center.x = (bbox.min.x + bbox.max.x) / 2;
-    center.y = (bbox.min.y + bbox.max.y) / 2;
-    center.z = (bbox.min.z + bbox.max.z) / 2;
-    
-    const height = bbox.max.y - bbox.min.y;
-
-    // Generar coordenadas UV para cada vértice
-    for (let i = 0; i < pos.count; i++) {
-        const x = pos.getX(i) - center.x;
-        const y = pos.getY(i);
-        const z = pos.getZ(i) - center.z;
-
-        // UV horizontal (u): basado en el ángulo alrededor del eje Y
-        const u = 0.5 + Math.atan2(z, x) / (2 * Math.PI);
-        
-        // UV vertical (v): basado en la altura
-        const v = (y - bbox.min.y) / height;
-
-        uvs.push(u, v);
-    }
-
-    // Asignar los UVs a la geometría
-    geometry.setAttribute('uv', new BufferAttribute(new Float32Array(uvs), 2));
-    geometry.attributes.uv.needsUpdate = true;
-};
-
-// Componente para cargar el modelo GLB - OPTIMIZADO
-const ModelAsset = React.memo(({ localUri }: { localUri: string }) => {
-    const [gltf, setGltf] = useState<any | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const loadedRef = useRef(false);
-
-    useEffect(() => {
-        // Evitar recargas múltiples
-        if (loadedRef.current) return;
-
-        const loader = new GLTFLoader();
-        console.log('🔄 Iniciando carga del modelo GLB:', localUri);
-        
-        loader.load(
-            localUri,
-            (loadedGltf: any) => {
-                console.log('✅ Modelo GLB cargado exitosamente');
-                loadedRef.current = true;
-                setGltf(loadedGltf);
-            },
-            undefined,
-            (err: any) => {
-                console.error('❌ Error cargando GLB:', err);
-                setError(err.message || 'Error desconocido');
-            }
-        );
-
-        return () => {
-            // Cleanup si el componente se desmonta
-            if (gltf?.scene) {
-                gltf.scene.traverse((child: any) => {
-                    if (child.geometry) child.geometry.dispose();
-                    if (child.material) {
-                        if (Array.isArray(child.material)) {
-                            child.material.forEach((m: any) => m.dispose());
-                        } else {
-                            child.material.dispose();
-                        }
-                    }
-                });
-            }
-        };
-    }, [localUri]); // Solo depende de localUri
-
-    if (error) {
-        console.error('❌ Error en ModelAsset:', error);
-        return null;
-    }
-
-    if (!gltf) {
-        return null;
-    }
-
-    return <primitive object={gltf.scene} scale={[1, 1, 1]} />;
-});
-
-ModelAsset.displayName = 'ModelAsset';
-
-// Componente de personalización - SIN re-renderizados innecesarios
-const SceneContent = React.memo(({ gltf, textData, texture }: SceneProps) => {
+// --- Componente que Maneja la Normalización, Ajustes y Personalización ---
+const PersonalizationScene = React.memo(({ gltf, textData, texture, modelId }: SceneProps) => {
     const { scene } = useThree();
-    const appliedRef = useRef(false);
     const materialRef = useRef<MeshStandardMaterial | null>(null);
+    
+    // Obtener configuración de personalización (Mesh Name, Text Position)
+    const config: ModelPersonalizationConfig | undefined = useMemo(() => getConfigByModelId(modelId), [modelId]);
 
-    useEffect(() => {
-        if (!gltf) return;
+    // 💡 Paso 1: Clonar el GLTF y aplicar Normalización + Ajustes de Posición/Escala
+    const adjustedScene = useMemo(() => {
+        if (!gltf) return null;
 
-        console.log('🔄 Aplicando personalización al modelo...');
+        const clonedScene = gltf.scene.clone();
+
+        // 1. OBTENER AJUSTES DE TRANSFORMACIÓN DE LA FASE 2
+        const adjustment = getAdjustmenPersonalizationtByModelId(modelId);
+        const {
+            scaleFactor = 1,
+            positionX = 0, positionY = 0, positionZ = 0,
+            rotationX = 0, rotationY = 0, rotationZ = 0,
+        } = adjustment || {};
+
+        // --- 1. NORMALIZACIÓN Y CENTRADO AUTOMÁTICO (CLAVE) ---
+        const box = new THREE.Box3().setFromObject(clonedScene);
+        const size = box.getSize(new THREE.Vector3());
+        // Normaliza el modelo para que el lado más largo sea un tamaño manejable (ej: 2 unidades)
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const scaleN = (1 / maxDim) * 2; 
         
-        scene.traverse((object: any) => {
-            if (object.isMesh && object.name === 'Cylinder_0') {
-                console.log('🎯 Encontrado objeto objetivo: Cylinder_0');
+        clonedScene.scale.set(scaleN, scaleN, scaleN);
+        
+        // Recalcular el centro después de la escala de normalización
+        const newBox = new THREE.Box3().setFromObject(clonedScene);
+        const newCenter = newBox.getCenter(new THREE.Vector3());
+        
+        // Aplicar el centrado al origen (0,0,0) y luego el offset manual
+        clonedScene.position.x += -newCenter.x + positionX;
+        clonedScene.position.y += -newCenter.y + positionY;
+        clonedScene.position.z += -newCenter.z + positionZ;
 
-                // GENERAR UVs CILÍNDRICOS si no existen
-                if (!object.geometry?.attributes?.uv) {
-                    console.log('⚙️ Generando UVs cilíndricos automáticamente...');
-                    generateCylindricalUVs(object.geometry);
+        // --- 2. AJUSTES FINOS (MANUALES) ---
+        clonedScene.scale.multiplyScalar(scaleFactor);
+        clonedScene.rotation.set(rotationX, rotationY, rotationZ); 
+
+        console.log(`✨ Modelo ID ${modelId} (Fase 2) - Ajustes aplicados:
+            Posición: [${clonedScene.position.x.toFixed(2)}, ${clonedScene.position.y.toFixed(2)}, ${clonedScene.position.z.toFixed(2)}]
+            Escala Total: ${clonedScene.scale.x.toFixed(2)} (Normalizado * ${scaleFactor})
+        `);
+
+        return clonedScene;
+    }, [gltf, modelId]); 
+
+    // 💡 Paso 2: Aplicar Textura y Material a la Malla Objetivo
+    useEffect(() => {
+        if (!adjustedScene || !config) {
+            console.log(`⚠️ No se encontró configuración para Modelo ID: ${modelId}`);
+            return;
+        }
+
+        adjustedScene.traverse((object: any) => {
+            // Usamos config.targetMeshName para encontrar el objeto
+            if (object.isMesh && object.name === config.targetMeshName) {
+                console.log(`🎯 Encontrado objeto objetivo: ${config.targetMeshName}`);
+
+                // Generar UVs usando el generador de la configuración si es necesario
+                if (config.uvGenerator && !object.geometry?.attributes?.uv) {  
+                    console.log('⚙️ Generando UVs personalizados (desde config)...');
+                    config.uvGenerator(object.geometry); 
                     console.log('✅ UVs generados');
-                }
+                } 
 
-                // Crear o reemplazar material
+                // Crear o reemplazar material 
                 if (!materialRef.current || !(object.material instanceof MeshStandardMaterial)) {
                     const initialColor = object.material?.color || 0xffffff;
                     materialRef.current = new MeshStandardMaterial({ 
                         color: initialColor,
                         metalness: 0.1,
                         roughness: 0.8,
-                        side: 2 // DoubleSide
+                        side: THREE.DoubleSide // Usar THREE.DoubleSide
                     });
                     object.material = materialRef.current;
                     console.log('🛠️ Material reemplazado a MeshStandardMaterial');
@@ -156,36 +119,42 @@ const SceneContent = React.memo(({ gltf, textData, texture }: SceneProps) => {
 
                 // Aplicar textura
                 if (texture && materialRef.current) {
-                    console.log('🖼️ Aplicando textura al material...');
                     materialRef.current.map = texture;
                     materialRef.current.needsUpdate = true;
-                    materialRef.current.color.setHex(0xffffff);
-                    
+                    materialRef.current.color.setHex(0xffffff); // El color blanco permite que la textura se vea correctamente
                     console.log('✅ Textura aplicada al modelo');
                 } else if (!texture && materialRef.current) {
+                    // Remover textura
                     materialRef.current.map = null;
-                    materialRef.current.color.setHex(0xffffff);
+                    materialRef.current.color.setHex(0xffffff); 
                     materialRef.current.needsUpdate = true;
                     console.log('✅ Textura removida');
                 }
-
-                appliedRef.current = true;
             }
         });
-    }, [scene, gltf, texture]);
+    }, [adjustedScene, texture, modelId, config]); 
 
+    // 💡 Paso 3: Renderizar Texto (Usando config)
     const textContent = textData.text.trim();
     const showText = textContent.length > 0;
+    
+    // Usar la configuración para la posición y escala del texto
+    const textPosition = config?.textPosition || [0, 0.4, 0];
+    const textRotation = config?.textRotation || [0, 0, 0];
+    const textScaleFactor = config?.textScaleFactor || 1;
+    const finalFontSize = (textData.size / 100) * textScaleFactor;
+
+    if (!adjustedScene) return null;
 
     return (
         <>
-            {gltf && <primitive object={gltf.scene} />}
+            <primitive object={adjustedScene} />
             
             {showText && (
                 <DreiText
-                    position={[0, 0.4, 0]}
-                    rotation={[0, 0, 0]}
-                    fontSize={textData.size / 100}
+                    position={textPosition as [number, number, number]}
+                    rotation={textRotation as [number, number, number]}
+                    fontSize={finalFontSize}
                     color={textData.color}
                     anchorX="center"
                     anchorY="middle"
@@ -199,10 +168,11 @@ const SceneContent = React.memo(({ gltf, textData, texture }: SceneProps) => {
     );
 });
 
-SceneContent.displayName = 'SceneContent';
+PersonalizationScene.displayName = 'PersonalizationScene';
+
 
 // Componente principal ModelViewer
-const ModelViewer = ({ modelUrl, textData, selectedImage }: ModelViewerProps) => {
+const ModelViewer = ({ modelUrl, textData, selectedImage, modelId }: ModelViewerProps) => {
     const loadingColor = useThemeColor({ light: '#0056b3', dark: '#007bff' }, 'tint');
     const [localUri, setLocalUri] = useState<string | null>(null);
     const [gltf, setGltf] = useState<any | null>(null);
@@ -210,16 +180,16 @@ const ModelViewer = ({ modelUrl, textData, selectedImage }: ModelViewerProps) =>
     const [loadingError, setLoadingError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Cargar el modelo 3D
+    // Cargar el modelo 3D (similar a tu código original)
     useEffect(() => {
         let isCancelled = false;
+        // Reiniciamos gltf y estado al cambiar la URL del modelo
+        setGltf(null); 
 
         const loadAsset = async () => {
             setIsLoading(true);
             setLocalUri(null);
             setLoadingError(null);
-
-            console.log('⏳ Descargando modelo:', modelUrl);
             
             try {
                 const asset = Asset.fromURI(modelUrl);
@@ -227,15 +197,12 @@ const ModelViewer = ({ modelUrl, textData, selectedImage }: ModelViewerProps) =>
 
                 if (!isCancelled && asset.localUri) {
                     setLocalUri(asset.localUri);
-                    console.log('✅ Modelo descargado:', asset.localUri);
                     
-                    // Cargar el GLTF
                     const loader = new GLTFLoader();
                     loader.load(
                         asset.localUri,
                         (loadedGltf: any) => {
                             if (!isCancelled) {
-                                console.log('✅ GLTF cargado');
                                 setGltf(loadedGltf);
                                 setIsLoading(false);
                             }
@@ -268,7 +235,7 @@ const ModelViewer = ({ modelUrl, textData, selectedImage }: ModelViewerProps) =>
         };
     }, [modelUrl]);
 
-    // Cargar la textura
+    // Cargar la textura (igual a tu código original)
     useEffect(() => {
         let isCancelled = false;
 
@@ -278,41 +245,27 @@ const ModelViewer = ({ modelUrl, textData, selectedImage }: ModelViewerProps) =>
                 return;
             }
 
-            console.log('🖼️ Cargando textura:', selectedImage.uri);
-
             try {
                 const imageAsset = Asset.fromURI(selectedImage.uri);
                 await imageAsset.downloadAsync();
                 
-                const loadedTexture = await ExpoTHREE.loadTextureAsync({ 
-                    asset: imageAsset 
-                });
+                const loadedTexture = await ExpoTHREE.loadTextureAsync({ asset: imageAsset });
 
                 if (!isCancelled && loadedTexture) {
-                    // Configuración crítica de la textura
                     loadedTexture.flipY = false;
                     loadedTexture.needsUpdate = true;
                     
-                    // Importar THREE para usar las constantes
-                    const THREE = require('three');
-                    
-                    // Configurar el wrapping para que la textura se repita/ajuste correctamente
                     loadedTexture.wrapS = THREE.ClampToEdgeWrapping;
                     loadedTexture.wrapT = THREE.ClampToEdgeWrapping;
                     
-                    // Configurar el filtrado para mejor calidad
                     loadedTexture.minFilter = THREE.LinearFilter;
                     loadedTexture.magFilter = THREE.LinearFilter;
                     
                     setTexture(loadedTexture);
-                    console.log('✅ Textura cargada y configurada');
-                    console.log('   - Dimensiones:', loadedTexture.image?.width, 'x', loadedTexture.image?.height);
                 }
             } catch (error) {
                 console.error('❌ Error cargando textura:', error);
-                if (!isCancelled) {
-                    setTexture(null);
-                }
+                if (!isCancelled) setTexture(null);
             }
         };
 
@@ -323,14 +276,16 @@ const ModelViewer = ({ modelUrl, textData, selectedImage }: ModelViewerProps) =>
         };
     }, [selectedImage?.uri]);
 
-    // Memorizar la configuración del Canvas para evitar re-renders
+    // Usar la posición de la cámara del Canvas estándar
     const canvasConfig = useMemo(() => ({
-        camera: { position: [0, 0, 3] as [number, number, number], fov: 50 },
+        // Posición de la cámara por defecto
+        camera: { position: [0, 0, 3] as [number, number, number], fov: 50 }, 
         gl: { 
             antialias: true,
             alpha: true 
         }
     }), []);
+
 
     if (loadingError) {
         return (
@@ -353,11 +308,12 @@ const ModelViewer = ({ modelUrl, textData, selectedImage }: ModelViewerProps) =>
         );
     }
 
-    console.log('🎨 Renderizando Canvas');
+    console.log('🎨 Renderizando Canvas de Personalización');
 
     return (
         <View style={styles.container}>
             <Canvas {...canvasConfig}>
+                {/* Controles de Órbita */}
                 <OrbitControls
                     enablePan={false}
                     enableZoom={true}
@@ -370,11 +326,14 @@ const ModelViewer = ({ modelUrl, textData, selectedImage }: ModelViewerProps) =>
                 <directionalLight position={[10, 10, 5]} intensity={3} />
                 <pointLight position={[-10, -10, -5]} intensity={0.5} />
                 
-                <SceneContent
+                {/* Renderizar la escena con la lógica de normalización y personalización */}
+                <PersonalizationScene
                     gltf={gltf}
                     textData={textData}
                     texture={texture}
+                    modelId={modelId}
                 />
+
             </Canvas>
         </View>
     );

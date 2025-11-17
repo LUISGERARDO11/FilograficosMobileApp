@@ -10,58 +10,14 @@ import {
 } from "react-native";
 import { useThemeColor } from "../hooks/use-theme-color"; // Asegúrate de que la ruta sea correcta
 import { useModelAsset } from "../hooks/useModelAsset"; // Nuevo hook
+import { getAdjustmentByModelId } from "../utils/modelAdjustments";
 import SceneRenderer from "./SceneRenderer"; // Nuevo componente
 
 // --- Tipos de Props de Ajuste ---
-// Usaremos el ID del modelo para aplicar ajustes específicos
-export type ModelAdjustment = {
-    modelId: number;
-    scaleFactor?: number; // Escala uniforme (ya existía)
-    
-    // Posición
-    positionX?: number; // ✨ Nuevo
-    positionY?: number; // (Ya existía)
-    positionZ?: number; // ✨ Nuevo
-
-    // Rotación (en radianes)
-    rotationX?: number; // (Ya existía)
-    rotationY?: number; // ✨ Nuevo
-    rotationZ?: number; // ✨ Nuevo
-    
-    // Escala no uniforme
-    scaleX?: number; // ✨ Nuevo
-    scaleY?: number; // ✨ Nuevo
-    scaleZ?: number; // ✨ Nuevo
-}
-
 interface ModelViewerProps {
   modelUrl: string;
   modelId: number; // Agregamos el ID para la lógica de ajustes
 }
-
-// --- Configuración de Ajustes por Modelo ---
-// Aquí defines los ajustes para los modelos que no se visualizan bien.
-const MODEL_ADJUSTMENTS: ModelAdjustment[] = [
-   { modelId: 1,
-      scaleFactor: 3,
-      positionX: 0, positionY: 0, positionZ: 0, 
-      rotationX: 0, rotationY: 0 , rotationZ:0
-    }, 
-    { modelId: 3,
-      scaleFactor: 2,
-      positionX: 0, positionY: -0.5, positionZ: 0, 
-      rotationX: 0, rotationY: 1.8 , rotationZ:0
-    }, 
-    { modelId: 4,
-      scaleFactor: 3,
-      positionX: 0, positionY: -7,positionZ: -1
-    }, 
-    { modelId: 5, 
-      scaleFactor: 1.5, 
-      positionX:-1, positionY: -0.5, positionZ:0.3,
-      rotationX: 0, rotationY:-0.3 , rotationZ:0
-    },
-];
 
 const CameraLogger = () => {
     const { camera } = useThree();
@@ -102,7 +58,7 @@ const ModelCleanViewer = ({ modelUrl, modelId }: ModelViewerProps) => {
   const localUri = useModelAsset(modelUrl);
 
   // Lógica para obtener ajustes específicos del modelo
-  const adjustment = MODEL_ADJUSTMENTS.find(a => a.modelId === modelId);
+  const adjustment = getAdjustmentByModelId(modelId);
   const { scaleFactor, positionX, positionY,positionZ, rotationX, rotationY, rotationZ } = adjustment || {};
 
   const LoadingFallback = (
