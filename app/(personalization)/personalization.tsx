@@ -1,3 +1,4 @@
+// app/(personalization)/personalization.tsx
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -14,7 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import ImageSection from '../../components/ImageSection';
-import ModelViewer from '../../components/ModelViewer';
+import ModelCleanViewer from '../../components/ModelCleanViewer';
 import TextSection, { TextData } from '../../components/TextSection';
 import { useThemeColor } from '../../hooks/use-theme-color';
 import { get3dModelById, ProductModel } from '../../services/models3dService';
@@ -32,18 +33,19 @@ const DEFAULT_TEXT_DATA: TextData = {
     fontStyle: 'normal',
 };
 
-// 2. AÑADIDO: Interfaz de Props esperada para ModelViewer.
-// Esto soluciona el error de tipado en este archivo.
-// NOTA: Esta interfaz DEBERÍA ser exportada desde '../../components/ModelViewer.tsx'
-// para una implementación correcta en producción.
-interface ModelViewerProps {
+// 2. CORRECCIÓN CLAVE: Interfaz de Props esperada para ModelCleanViewer.
+// Debe incluir el 'modelId' para que coincida con el componente refactorizado.
+// La prop 'modelId' ahora es obligatoria.
+interface ModelCleanViewerProps {
     modelUrl: string;
-    textData: TextData;
-    selectedImage: { uri: string } | null;
+    modelId: number; // ✨ AÑADIDO y REQUERIDO
+    textData: TextData; // Aunque no la usas aún en ModelCleanViewer, la mantengo si la planeas usar.
+    selectedImage: { uri: string } | null; // Igual que arriba.
 }
 
-// 3. AÑADIDO: Definición tipada del componente ModelViewer
-const ModelViewerTyped = ModelViewer as React.ComponentType<ModelViewerProps>;
+// 3. Definición tipada del componente ModelCleanViewer
+// (Esto es solo un bypass temporal; idealmente, esta interfaz se exportaría del componente)
+const ModelCleanViewerTyped = ModelCleanViewer as React.ComponentType<ModelCleanViewerProps>;
 
 
 const PersonalizationScreen = () => {
@@ -51,6 +53,8 @@ const PersonalizationScreen = () => {
     const [modelData, setModelData] = useState<ProductModel | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedImage, setSelectedImage] = useState<{ uri: string } | null>(null);
+
+    const modelIdNumber = parseInt(modelId, 10); // ✨ Convertimos el modelId de string a number
 
     // 2. Usar la constante para inicializar el estado
     const [textData, setTextData] = useState<TextData>(DEFAULT_TEXT_DATA);
@@ -78,11 +82,11 @@ const PersonalizationScreen = () => {
                 if (!modelId) {
                     throw new Error("Error de navegación: No se encontró el ID del producto.");
                 }
-                const idAsNumber = parseInt(modelId, 10);
-                if (isNaN(idAsNumber)) {
+                // Usamos modelIdNumber ya calculado
+                if (isNaN(modelIdNumber)) {
                     throw new Error("ID de modelo inválido.");
                 }
-                const data = await get3dModelById(idAsNumber);
+                const data = await get3dModelById(modelIdNumber); // Usamos modelIdNumber
                 setModelData(data);
             } catch (error: any) {
                 console.error("Error al obtener detalles del modelo:", error);
@@ -94,6 +98,10 @@ const PersonalizationScreen = () => {
         };
         fetchModel();
     }, [modelId]);
+
+
+    // ... (otras funciones como handleImageSelect, handleImageRemove, handleTextChange, handleTabChange, handleGoBack, handleRefresh, handlePreview) ...
+    // ... Mantenemos el resto de las funciones iguales a tu código original ...
 
     const handleImageSelect = (imageUri: string) => {
         setSelectedImage({ uri: imageUri });
@@ -157,7 +165,7 @@ const PersonalizationScreen = () => {
 
     const handleGoBack = () => router.back();
     
-    // ⭐ IMPLEMENTACIÓN DE LA FUNCIÓN DE REINICIO SIMPLIFICADA
+    // IMPLEMENTACIÓN DE LA FUNCIÓN DE REINICIO SIMPLIFICADA
     const handleRefresh = () => {
         const hasImage = selectedImage !== null;
         const hasText = textData.text.trim() !== '';
@@ -191,7 +199,7 @@ const PersonalizationScreen = () => {
         );
     };
 
-   const handlePreview = () => {
+    const handlePreview = () => {
         // Se asume que modelData está disponible aquí debido a las comprobaciones anteriores
         if (!modelData) {
             Alert.alert("Error de Datos", "No se puede obtener la URL del modelo 3D.");
@@ -203,7 +211,7 @@ const PersonalizationScreen = () => {
             return;
         }
 
-        // ⭐ CORRECCIÓN CLAVE: Codificar la URL del modelo 3D antes de pasarla
+        // CORRECCIÓN CLAVE: Codificar la URL del modelo 3D antes de pasarla
         const encodedModelUrl = encodeURI(modelData.model_url);
         
         const serializedTextData = JSON.stringify(textData);
@@ -215,12 +223,13 @@ const PersonalizationScreen = () => {
                 modelId: modelId,
                 selectedImageUri: selectedImage ? selectedImage.uri : null, 
                 textData: serializedTextData,
-                modelUrl: encodedModelUrl, // 👈 USAMOS LA URL CODIFICADA
+                modelUrl: encodedModelUrl, // USAMOS LA URL CODIFICADA
             },
         });
 
         console.log('Navegando a Preview con:', { modelId, modelUrl: encodedModelUrl, selectedImage, textData });
     };
+
 
     if (isLoading) {
         // ✅ CORRECCIÓN: Usamos SafeAreaView aquí para manejar el notch en el estado de carga
@@ -234,12 +243,12 @@ const PersonalizationScreen = () => {
         );
     }
     
-    if (!modelData) {
+    if (!modelData || isNaN(modelIdNumber)) { // ✨ Verificamos que modelIdNumber sea válido
         // ✅ CORRECCIÓN: Usamos SafeAreaView aquí para manejar el notch en el estado de error
         return (
             <SafeAreaView style={[styles.safeArea, { backgroundColor: backgroundColor }]}>
                 <View style={styles.loadingContainer}>
-                    <Text style={{ color: titleTextColor, fontSize: 18 }}>Producto no encontrado.</Text>
+                    <Text style={{ color: titleTextColor, fontSize: 18 }}>Producto no encontrado o ID inválido.</Text>
                 </View>
             </SafeAreaView>
         );
@@ -250,6 +259,7 @@ const PersonalizationScreen = () => {
         <View style={[styles.rootContainer, { backgroundColor: headerBgColor }]}>
             <Stack.Screen
                 options={{
+                    // ... (Opciones de Stack.Screen) ...
                     headerShown: true,
                     headerTitle: modelData.product_name || '',
                     headerTitleAlign: 'center',
@@ -276,14 +286,17 @@ const PersonalizationScreen = () => {
             >
                 <View style={[styles.productCard, { backgroundColor: cardBgColor, borderColor: cardBorderColor }]}>
                     <Text style={[styles.productTitle, { color: titleTextColor }]}>{modelData.product_name}</Text>
-                    {/* 4. Usamos el componente tipado para evitar el error de TS */}
-                    <ModelViewerTyped 
+                    
+                    {/* 4. CORRECCIÓN CLAVE: Pasamos el 'modelIdNumber' (number) */}
+                    <ModelCleanViewerTyped 
                         modelUrl={modelData.model_url}
+                        modelId={modelIdNumber} // ✨ PASAMOS EL ID DEL MODELO COMO NÚMERO
                         textData={textData}
                         selectedImage={selectedImage}
                     />
                 </View>
 
+                {/* ... (Pestañas y Contenido) ... */}
                 <View style={styles.tabContainer}>
                     <TouchableOpacity
                         style={[
