@@ -1,5 +1,3 @@
-// app/_layout.tsx
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -11,6 +9,18 @@ import { AuthProvider, useAuth } from "../hooks/useAuth";
 import "@react-three/fiber/native";
 import "expo-file-system";
 // *************************************************
+
+// Importación y configuración de Troika
+// =========================================================================
+import { configureTextBuilder } from 'troika-three-text';
+
+configureTextBuilder({
+    workerFactory: null,
+    // ✨ NUEVA PROPIEDAD CLAVE: Deshabilita el intentode usar WebGL para generar mapas de distancia
+    disableSDFGeneration: true, 
+});
+// =========================================================================
+
 
 SplashScreen.preventAutoHideAsync();
 

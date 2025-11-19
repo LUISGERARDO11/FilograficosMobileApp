@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useState } from 'react';
 import {
@@ -52,6 +53,8 @@ const ImageSection: React.FC<ImageSectionProps> = ({ selectedImage, onImageSelec
             result = await ImagePicker.launchCameraAsync({
                 mediaTypes: ImagePicker.MediaTypeOptions.Images,
                 allowsEditing: true,
+                aspect: [4, 3],      // 🔥 Fuerza el mismo tamaño que la galería
+                quality: 0.7,
             });
             } else {
             const libraryPermission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -70,8 +73,37 @@ const ImageSection: React.FC<ImageSectionProps> = ({ selectedImage, onImageSelec
 
             if (!result.canceled) {
             const image = result.assets[0];
-            const imageUri = image.uri;
-            
+            let imageUri = image.uri; // Usaremos esta variable, que puede ser actualizada
+
+            // ✨ CORRECCIÓN CLAVE: NORMALIZAR LA IMAGEN DE LA CÁMARA
+            // Esto reescribe la imagen a un formato "limpio" sin metadatos EXIF problemáticos.
+           if (source === 'camera') {
+                console.log('📸 Normalizando imagen de la cámara...');
+                
+                // 1. RE-DIMENSIONAR: Asegura que la imagen no sea demasiado grande para la GPU móvil.
+                // Usamos un ancho máximo de 1024 o 2048 si la imagen es más grande.
+                const maxWidth = 2048; // Un buen límite para texturas de WebGL móvil.
+                const resizeOperation = (image.width > maxWidth) 
+                    ? [{ resize: { width: maxWidth } }] 
+                    : [];
+
+                const manipResult = await ImageManipulator.manipulateAsync(
+                    imageUri,
+                    resizeOperation, // Aplicar resize si es necesario
+                    // 2. COMPRESIÓN Y FORMATO:
+                    { 
+                        compress: 0.8, 
+                        // Es mejor usar PNG si sospechamos de problemas de color o artefactos JPEG, 
+                        // pero probemos primero con JPEG y una compresión ligeramente mejor (0.9 vs 0.8)
+                        format: ImageManipulator.SaveFormat.JPEG 
+                    }
+                );
+                
+                imageUri = manipResult.uri;
+                console.log('✅ Imagen de la cámara normalizada. Nueva URI:', imageUri);
+            }
+            // FIN DE CORRECCIÓN CLAVE
+
             // Validar formato (solo JPEG y PNG)
             const validFormats = ['.jpg', '.jpeg', '.png'];
             const isValidFormat = validFormats.some(format => imageUri.toLowerCase().endsWith(format));
@@ -80,16 +112,17 @@ const ImageSection: React.FC<ImageSectionProps> = ({ selectedImage, onImageSelec
                 return;
             }
 
-            // Validar tamaño (máximo 5MB)
+            // Validar tamaño (máximo 5MB). Nota: manipulación puede cambiar fileSize
+            // Es más seguro validar el tamaño en el resultado original si es posible
             if (image.fileSize && image.fileSize > 5 * 1024 * 1024) {
                 Alert.alert('Tamaño excesivo', 'La imagen debe ser menor a 5MB.');
                 return;
             }
 
-            onImageSelect(imageUri);
+            onImageSelect(imageUri); // Usar la URI posiblemente manipulada
             }
         } catch (error) {
-            console.error("Error al seleccionar la imagen:", error);
+            console.error("Error al seleccionar/manipular la imagen:", error);
             Alert.alert("Error", "Ocurrió un error al intentar acceder a la fuente de la imagen.");
         }
     };
