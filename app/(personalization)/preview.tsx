@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as MediaLibrary from 'expo-media-library'; // ✨ Importar MediaLibrary
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import * as Sharing from 'expo-sharing';
 import React, { useMemo, useRef } from 'react';
 import { Alert, Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-
 import ModelViewer, { ModelViewerHandle } from '../../components/ModelViewer'; // ✨ Importar la interfaz Handle
 import { useThemeColor } from '../../hooks/use-theme-color';
 import { TextData } from '../../utils/types';
@@ -89,6 +89,38 @@ const PreviewScreen = () => {
     }
   };
 
+  const handleShare = async () => {
+    try {
+        // Paso 1: Verificar si el sistema operativo puede compartir archivos
+        if (!(await Sharing.isAvailableAsync())) {
+            Alert.alert('Error', 'La función de compartir no está disponible en este dispositivo.');
+            return;
+        }
+
+        // Paso 2: Capturar la imagen desde el componente hijo (Igual que en handleDownload)
+        if (modelViewerRef.current) {
+            // `captureSnapshot` debe devolver una URI de archivo temporal
+            const uri = await modelViewerRef.current.captureSnapshot(); 
+
+            if (uri) {
+                // Paso 3: Abrir el diálogo de compartir
+                await Sharing.shareAsync(uri, {
+                    mimeType: 'image/png', // Define el tipo de archivo (ViewShot usa PNG por defecto)
+                    dialogTitle: 'Comparte tu diseño 3D personalizado',
+                });
+                
+                // Nota: No es necesario guardar en MediaLibrary antes de compartir.
+                // La URI temporal es suficiente.
+            } else {
+                Alert.alert('Error', 'No se pudo generar la captura para compartir.');
+            }
+        }
+    } catch (error) {
+        console.error("Error al compartir:", error);
+        Alert.alert('Error', 'Hubo un problema al intentar compartir la imagen.');
+    }
+  };
+
   const { selectedImage, textData, modelUrl: finalModelUrl, modelId: finalModelId } = personalizationData;
 
   // ... (Bloque de error igual que antes) ...
@@ -142,9 +174,9 @@ const PreviewScreen = () => {
 
         <TouchableOpacity
           style={[styles.actionButton, styles.shareButton]}
-          onPress={() => Alert.alert('Éxito', '¡Personalización compartida!')}
+          onPress={handleShare}
         >
-          <Text style={styles.shareButtonText}>Compartir</Text>
+          <Text style={styles.shareButtonText}>Compartir Diseño</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>

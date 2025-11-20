@@ -112,7 +112,7 @@ const PersonalizationScene = React.memo(({ gltf, textData, texture, modelId }: S
         });
     }, [adjustedScene, texture, modelId, config]);
 
-    const textContent = textData.text.trim();
+    const textContent = (textData.text || '').trim();
     const showText = textContent.length > 0;
     const textPosition = config?.textPosition || [0, 0.4, 0];
     const textRotation = config?.textRotation || [0, 0, 0];
@@ -199,6 +199,7 @@ const ModelViewer = forwardRef<ModelViewerHandle, ModelViewerProps>(({ modelUrl,
                         asset.localUri,
                         (loadedGltf: any) => {
                             if (!isCancelled) {
+                                console.log('✅ GLTF cargado exitosamente.');
                                 setGltf(loadedGltf);
                                 setIsLoading(false);
                             }
@@ -215,6 +216,7 @@ const ModelViewer = forwardRef<ModelViewerHandle, ModelViewerProps>(({ modelUrl,
                 }
             } catch (e: any) {
                 if (!isCancelled) {
+                    console.error('❌ Error descargando Asset:', e.message);
                     setLoadingError(e.message || 'Error desconocido');
                     setIsLoading(false);
                 }
