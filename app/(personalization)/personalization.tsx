@@ -1,4 +1,3 @@
-// app/(personalization)/personalization.tsx
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -33,20 +32,14 @@ const DEFAULT_TEXT_DATA: TextData = {
     fontStyle: 'normal',
 };
 
-// 2. CORRECCIÓN CLAVE: Interfaz de Props esperada para ModelCleanViewer.
-// Debe incluir el 'modelId' para que coincida con el componente refactorizado.
-// La prop 'modelId' ahora es obligatoria.
 interface ModelCleanViewerProps {
     modelUrl: string;
-    modelId: number; // ✨ AÑADIDO y REQUERIDO
-    textData: TextData; // Aunque no la usas aún en ModelCleanViewer, la mantengo si la planeas usar.
-    selectedImage: { uri: string } | null; // Igual que arriba.
+    modelId: number; 
+    textData: TextData;
+    selectedImage: { uri: string } | null;
 }
 
-// 3. Definición tipada del componente ModelCleanViewer
-// (Esto es solo un bypass temporal; idealmente, esta interfaz se exportaría del componente)
 const ModelCleanViewerTyped = ModelCleanViewer as React.ComponentType<ModelCleanViewerProps>;
-
 
 const PersonalizationScreen = () => {
     const { modelId } = useLocalSearchParams() as { modelId: string };
@@ -54,7 +47,7 @@ const PersonalizationScreen = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [selectedImage, setSelectedImage] = useState<{ uri: string } | null>(null);
 
-    const modelIdNumber = parseInt(modelId, 10); // ✨ Convertimos el modelId de string a number
+    const modelIdNumber = parseInt(modelId, 10);
 
     // 2. Usar la constante para inicializar el estado
     const [textData, setTextData] = useState<TextData>(DEFAULT_TEXT_DATA);
@@ -98,10 +91,6 @@ const PersonalizationScreen = () => {
         };
         fetchModel();
     }, [modelId]);
-
-
-    // ... (otras funciones como handleImageSelect, handleImageRemove, handleTextChange, handleTabChange, handleGoBack, handleRefresh, handlePreview) ...
-    // ... Mantenemos el resto de las funciones iguales a tu código original ...
 
     const handleImageSelect = (imageUri: string) => {
         setSelectedImage({ uri: imageUri });
@@ -232,7 +221,7 @@ const PersonalizationScreen = () => {
 
 
     if (isLoading) {
-        // ✅ CORRECCIÓN: Usamos SafeAreaView aquí para manejar el notch en el estado de carga
+        // Usamos SafeAreaView aquí para manejar el notch en el estado de carga
         return (
             <SafeAreaView style={[styles.safeArea, { backgroundColor: backgroundColor }]}>
                 <View style={styles.loadingContainer}>
@@ -243,8 +232,8 @@ const PersonalizationScreen = () => {
         );
     }
     
-    if (!modelData || isNaN(modelIdNumber)) { // ✨ Verificamos que modelIdNumber sea válido
-        // ✅ CORRECCIÓN: Usamos SafeAreaView aquí para manejar el notch en el estado de error
+    if (!modelData || isNaN(modelIdNumber)) {
+        //  Usamos SafeAreaView aquí para manejar el notch en el estado de error
         return (
             <SafeAreaView style={[styles.safeArea, { backgroundColor: backgroundColor }]}>
                 <View style={styles.loadingContainer}>
@@ -254,7 +243,7 @@ const PersonalizationScreen = () => {
         );
     }
 
-    // ⭐ CONTENIDO PRINCIPAL: Mantenemos View porque el Stack Header ya está visible
+    // CONTENIDO PRINCIPAL: Mantenemos View porque el Stack Header ya está visible
     return (
         <View style={[styles.rootContainer, { backgroundColor: headerBgColor }]}>
             <Stack.Screen
@@ -361,7 +350,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 20,
     },
-    // Ajustado para que el loading container use flex: 1, ahora es hijo de SafeAreaView
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',

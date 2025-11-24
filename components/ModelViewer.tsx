@@ -10,7 +10,7 @@ import {
     Text,
     View,
 } from 'react-native';
-import { captureRef } from 'react-native-view-shot'; // ✨ IMPORTANTE
+import { captureRef } from 'react-native-view-shot';
 import * as THREE from 'three';
 import { MeshStandardMaterial, Texture } from 'three';
 import { GLTFLoader } from 'three-stdlib';
@@ -38,7 +38,6 @@ export interface ModelViewerHandle {
     captureSnapshot: () => Promise<string | null>;
 }
 
-// --- Componente PersonalizationScene (Sin Cambios Lógicos, solo lo incluimos por completitud) ---
 const PersonalizationScene = React.memo(({ gltf, textData, texture, modelId }: SceneProps) => {
     const { scene } = useThree();
     const materialRef = useRef<MeshStandardMaterial | null>(null);
@@ -147,7 +146,6 @@ const PersonalizationScene = React.memo(({ gltf, textData, texture, modelId }: S
 
 PersonalizationScene.displayName = 'PersonalizationScene';
 
-// --- Componente Principal ModelViewer con forwardRef ---
 const ModelViewer = forwardRef<ModelViewerHandle, ModelViewerProps>(({ modelUrl, textData, selectedImage, modelId }, ref) => {
     const loadingColor = useThemeColor({ light: '#0056b3', dark: '#007bff' }, 'tint');
     const [localUri, setLocalUri] = useState<string | null>(null);
@@ -159,7 +157,7 @@ const ModelViewer = forwardRef<ModelViewerHandle, ModelViewerProps>(({ modelUrl,
     // Referencia al contenedor que queremos capturar
     const viewShotRef = useRef<View>(null);
 
-    // ✨ Exponer la función captureSnapshot al componente padre
+    // Exponer la función captureSnapshot al componente padre
     useImperativeHandle(ref, () => ({
         captureSnapshot: async () => {
             try {
@@ -257,15 +255,20 @@ const ModelViewer = forwardRef<ModelViewerHandle, ModelViewerProps>(({ modelUrl,
         return () => { isCancelled = true; };
     }, [selectedImage?.uri]);
 
-    const canvasConfig = useMemo(() => ({
-        camera: { position: [0, 0, 3] as [number, number, number], fov: 50 }, 
-        gl: { 
-            antialias: true,
-            alpha: true,
-            // ✨ CLAVE: Esto evita que el canvas salga negro al tomar captura
-            preserveDrawingBuffer: true 
-        }
-    }), []);
+const canvasConfig = useMemo(() => ({
+    camera: { position: [0, 0, 3] as [number, number, number], fov: 50 }, 
+    gl: { 
+        antialias: true,
+        alpha: true,
+        preserveDrawingBuffer: true,
+        // ⭐ CLAVE DE CORRECCIÓN: Agregar failIfMajorPerformanceCaveat: false
+        failIfMajorPerformanceCaveat: false, 
+        // ⭐ CLAVE DE CORRECCIÓN: Agregar logarithmicDepthBuffer: true
+        logarithmicDepthBuffer: true,
+        // A veces ayuda a evitar errores de shader
+        // powerPreference: 'high-performance' as WebGLContextEvent['powerPreference'],
+    }
+}), []);
 
 
     if (loadingError) {
@@ -286,7 +289,7 @@ const ModelViewer = forwardRef<ModelViewerHandle, ModelViewerProps>(({ modelUrl,
     }
 
     return (
-        // ✨ Envolvemos en View con collapsable=false y la ref para ViewShot
+        // Envolvemos en View con collapsable=false y la ref para ViewShot
         <View ref={viewShotRef} collapsable={false} style={styles.container}>
             <Canvas {...canvasConfig}>
                 <OrbitControls
@@ -331,5 +334,4 @@ const styles = StyleSheet.create({
     },
 });
 
-// Exportamos usando memo pero envolviendo el componente con forwardRef
 export default React.memo(ModelViewer);

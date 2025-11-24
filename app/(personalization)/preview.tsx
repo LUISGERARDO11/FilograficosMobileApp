@@ -1,14 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as MediaLibrary from 'expo-media-library'; // ✨ Importar MediaLibrary
+import * as MediaLibrary from 'expo-media-library';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import React, { useMemo, useRef } from 'react';
 import { Alert, Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import ModelViewer, { ModelViewerHandle } from '../../components/ModelViewer'; // ✨ Importar la interfaz Handle
+import ModelViewer, { ModelViewerHandle } from '../../components/ModelViewer';
 import { useThemeColor } from '../../hooks/use-theme-color';
 import { TextData } from '../../utils/types';
 
-// NOTA: Eliminamos la conversión extraña de ModelViewerTyped porque ahora está tipado correctamente
 const { width } = Dimensions.get('window');
 const DEFAULT_TEXT_DATA: TextData = { text: '', color: '#000000', size: 24, fontWeight: 'normal', fontStyle: 'normal' };
 
@@ -16,10 +15,9 @@ const PreviewScreen = () => {
   const params = useLocalSearchParams();
   const router = useRouter();
 
-  // ✨ Referencia para controlar el ModelViewer
+  // Referencia para controlar el ModelViewer
   const modelViewerRef = useRef<ModelViewerHandle>(null);
 
-  // ... (Resto de tus definiciones de parámetros y colores igual que antes) ...
   const { modelId, selectedImageUri, textData: serializedTextData, modelUrl } = params as {
     modelId: string | undefined;
     selectedImageUri: string | null | undefined;
@@ -58,7 +56,7 @@ const PreviewScreen = () => {
   const handleGoBack = () => router.back();
   const handleGoHome = () => router.push('/');
 
-  // ✨ FUNCIÓN DE DESCARGA IMPLEMENTADA
+  // FUNCIÓN DE DESCARGA IMPLEMENTADA
   const handleDownload = async () => {
     try {
         // 1. Solicitar permisos
@@ -108,9 +106,6 @@ const PreviewScreen = () => {
                     mimeType: 'image/png', // Define el tipo de archivo (ViewShot usa PNG por defecto)
                     dialogTitle: 'Comparte tu diseño 3D personalizado',
                 });
-                
-                // Nota: No es necesario guardar en MediaLibrary antes de compartir.
-                // La URI temporal es suficiente.
             } else {
                 Alert.alert('Error', 'No se pudo generar la captura para compartir.');
             }
@@ -123,9 +118,7 @@ const PreviewScreen = () => {
 
   const { selectedImage, textData, modelUrl: finalModelUrl, modelId: finalModelId } = personalizationData;
 
-  // ... (Bloque de error igual que antes) ...
   if (!finalModelId || !finalModelUrl) {
-      // ... (Mismo código de error que tenías)
       return <View><Text>Error</Text></View>; // Simplificado para el ejemplo
   }
 
@@ -155,7 +148,6 @@ const PreviewScreen = () => {
         <View style={[styles.modelContainer, { backgroundColor: cardBgColor }]}>
           <Text style={[styles.productTitle, { color: primaryTextColor }]}>Modelo ID: {modelId}</Text>
           
-          {/* ✨ Asignamos la referencia aquí */}
           <ModelViewer
             ref={modelViewerRef} 
             modelUrl={finalModelUrl}
@@ -167,7 +159,7 @@ const PreviewScreen = () => {
 
         <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: buttonBgColor }]}
-          onPress={handleDownload} // ✨ Conectamos la función
+          onPress={handleDownload}
         >
           <Text style={[styles.actionButtonText, { color: buttonTextColor }]}>Descargar Imagen</Text>
         </TouchableOpacity>
@@ -183,7 +175,6 @@ const PreviewScreen = () => {
   );
 };
 
-// ... (Tus estilos se mantienen igual) ...
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   rootContainer: { flex: 1 },

@@ -33,8 +33,7 @@ export const MODEL_PERSONALIZATION_CONFIGS: ModelPersonalizationConfig[] = [
     {
         modelId: 5, 
         // ✨ CORRECCIÓN: Cambiamos 'Object_0' por el nombre real encontrado en los logs
-        targetMeshName: 'Object_2', 
-        uvGenerator: generateCylindricalUVs, 
+        targetMeshName: 'Object_2',  
         
         textPosition: [0, 0, 0], 
         textRotation: [0, 0, 0],

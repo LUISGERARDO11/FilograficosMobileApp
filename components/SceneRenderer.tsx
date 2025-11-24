@@ -4,9 +4,6 @@ import React, { useMemo } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three-stdlib";
 
-// Asegúrate de importar o definir ModelAdjustment aquí si no usas un archivo de tipos
-// (Asumo que importarás ModelAdjustment si lo mueves a un archivo separado)
-
 interface SceneRendererProps {
   modelUrl: string; 
   scaleFactor?: number;
@@ -41,6 +38,37 @@ const Model = React.memo(
     const adjustedScene = useMemo(() => {
       const scene = gltf.scene.clone();
 
+  scene.traverse((child) => {
+    if (child instanceof THREE.Mesh) {
+        let materialToUse = child.material;
+
+        // Verificar si el material está ausente o es null/undefined
+        if (!materialToUse) {
+            // ⭐ CLAVE: Asignar un material por defecto si no existe
+            materialToUse = new THREE.MeshStandardMaterial({ color: 0x808080 }); 
+        }
+        
+        // 1. Clonar el material (como hiciste antes)
+        if (Array.isArray(materialToUse)) {
+            materialToUse = materialToUse.map(mat => (mat ? mat.clone() : new THREE.MeshStandardMaterial({ color: 0x808080 })));
+        } else if (materialToUse) { // Ya verificamos que no es nulo
+            materialToUse = materialToUse.clone();
+        } 
+        // Nota: Si materialToUse era inicialmente null, ya se asignó un nuevo material.
+
+        // Reasignar el material clonado/por defecto
+        child.material = materialToUse; // Reasignar el material clonado/por defecto
+            
+            // Asegurarse de que el renderizado de la luz esté habilitado (pista de Three.js)
+            if (child.material && !Array.isArray(child.material)) {
+              child.material.needsUpdate = true; // Forzar actualización
+              // Si usas THREE.MeshStandardMaterial o PBR, necesitas UVs.
+            }
+
+            // Opcional: Desactivar culling (déjalo comentado por ahora)
+            // child.frustumCulled = false; 
+        }
+      });
       // --- 1. NORMALIZACIÓN Y CENTRADO AUTOMÁTICO (EXISTENTE) ---
       const box = new THREE.Box3().setFromObject(scene);
       const size = box.getSize(new THREE.Vector3());
